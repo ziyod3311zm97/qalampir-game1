@@ -21,7 +21,7 @@ const db = new sqlite3.Database('./database.db', (err) => {
     else console.log("SQLite Bazasiga muvaffaqiyatli ulandi.");
 });
 
-// Foydalanuvchilar va O'yinlar jadvallarini yaratish
+// Foydalanuvchilar jadvalini yaratish
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY,
@@ -52,24 +52,25 @@ bot.onText(/\/start/, (msg) => {
     });
 });
 
-// API: Foydalanuvchi ma'lumotlarini olish (Dashboard uchun)
-app.get('/api/user/:id', (req, res) => {// 
-    API: TOP-10 g'oliblarni olish (Leaderboard)
-app.get('/api/leaderboard', (req, res) => {
-    db.all(`SELECT username, wins, stars FROM users ORDER BY wins DESC, stars DESC LIMIT 10`, [], (err, rows) => {
-        if (err) {
-            res.json([]);
-        } else {
-            res.json(rows);
-        }
-    });
-});
+// API 1: Foydalanuvchi ma'lumotlarini olish (Dashboard uchun)
+app.get('/api/user/:id', (req, res) => {
     const userId = req.params.id;
     db.get(`SELECT * FROM users WHERE id = ?`, [userId], (err, row) => {
         if (err || !row) {
             res.json({ id: userId, stars: 50, wins: 0, losses: 0 });
         } else {
             res.json(row);
+        }
+    });
+});
+
+// API 2: TOP-10 g'oliblarni olish (Leaderboard uchun)
+app.get('/api/leaderboard', (req, res) => {
+    db.all(`SELECT username, wins, stars FROM users ORDER BY wins DESC, stars DESC LIMIT 10`, [], (err, rows) => {
+        if (err) {
+            res.json([]);
+        } else {
+            res.json(rows);
         }
     });
 });
@@ -85,7 +86,6 @@ io.on('connection', (socket) => {
         socket.pepperPos = pepperPos;
 
         if (waitingPlayer && waitingPlayer.id !== socket.id) {
-            // Ikkinchi o'yinchi topildi, xona tuzamiz
             const roomId = `room_${waitingPlayer.id}_${socket.id}`;
             const p1 = waitingPlayer;
             const p2 = socket;
@@ -112,7 +112,6 @@ io.on('connection', (socket) => {
 
             waitingPlayer = null;
         } else {
-            // Birinchi o'yinchi kutish zaliga qo'shiladi
             waitingPlayer = socket;
             socket.emit('waiting', "Raqib izlanmoqda...");
         }
@@ -126,16 +125,13 @@ io.on('connection', (socket) => {
         const opponent = game.players[opponentId];
 
         if (cellIndex === opponent.pepperPos) {
-            // Qalampir topildi — G'alaba!
             io.to(roomId).emit('game_over', { winner: socket.userId, loser: opponent.userId, hitIndex: cellIndex });
             
-            // Bazada balans va statistikani yangilash
             db.run(`UPDATE users SET stars = stars + 10, wins = wins + 1 WHERE id = ?`, [socket.userId]);
             db.run(`UPDATE users SET stars = MAX(0, stars - 10), losses = losses + 1 WHERE id = ?`, [opponent.userId]);
 
             delete activeGames[roomId];
         } else {
-            // Noto'g'ri zarba, navbat raqibga o'tadi
             game.turn = opponentId;
             io.to(roomId).emit('move_result', {
                 attacker: socket.userId,
