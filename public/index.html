@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Qalampir Topish</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #121212;
+            color: #E0E0E0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 15px;
+            overflow: hidden;
+        }
+        h2 { margin: 10px 0; font-size: 22px; color: #ffffff; }
+        .balance { font-size: 16px; color: #FFD700; margin-bottom: 5px; }
+        .status { font-size: 14px; color: #aaa; margin-bottom: 15px; height: 20px; text-align: center; }
+        .label { font-size: 13px; color: #888; margin: 8px 0; text-transform: uppercase; letter-spacing: 1px; }
+        .grid-container { display: grid; grid-template-columns: repeat(3, 65px); gap: 10px; }
+        .cell { width: 65px; height: 65px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; transition: 0.2s; box-shadow: 0 3px 6px rgba(0,0,0,0.4); }
+        .my-cell { background-color: #3498db; border: 2px solid #2980b9; }
+        .enemy-cell { background-color: #2c3e50; border: 2px solid #34495e; }
+        .cell.selected { border-color: #ffffff; box-shadow: 0 0 15px #3498db; }
+        .cell:active { transform: scale(0.92); }
+        .miss { color: #e74c3c; font-weight: bold; font-size: 30px; }
+        hr { width: 80%; border: 0; border-top: 1px solid #333; margin: 20px 0; }
+        .start-btn { background-color: #2ecc71; color: white; border: none; padding: 10px 25px; font-size: 16px; border-radius: 20px; margin-top: 20px; display: none; font-weight: bold; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3); }
+    </style>
+</head>
+<body>
+
+    <h2>🌶️ Qalampir Top</h2>
+    <div class="balance">Balans: <span id="starBalance">10</span> ⭐️</div>
+    <div id="status" class="status">O'z qalampiringizni yashiring!</div>
+
+    <div class="label">Raqib maydoni</div>
+    <div class="grid-container" id="enemyGrid">
+        <div class="cell enemy-cell" onclick="attack(0)"></div>
+        <div class="cell enemy-cell" onclick="attack(1)"></div>
+        <div class="cell enemy-cell" onclick="attack(2)"></div>
+        <div class="cell enemy-cell" onclick="attack(3)"></div>
+        <div class="cell enemy-cell" onclick="attack(4)"></div>
+        <div class="cell enemy-cell" onclick="attack(5)"></div>
+    </div>
+
+    <hr>
+
+    <div class="label">Sizning maydoningiz</div>
+    <div class="grid-container" id="myGrid">
+        <div class="cell my-cell" onclick="selectMyPepperSpot(0)"></div>
+        <div class="cell my-cell" onclick="selectMyPepperSpot(1)"></div>
+        <div class="cell my-cell" onclick="selectMyPepperSpot(2)"></div>
+        <div class="cell my-cell" onclick="selectMyPepperSpot(3)"></div>
+        <div class="cell my-cell" onclick="selectMyPepperSpot(4)"></div>
+        <div class="cell my-cell" onclick="selectMyPepperSpot(5)"></div>
+    </div>
+
+    <button id="startBtn" class="start-btn" onclick="startGame()">Boshlash (10 ⭐️)</button>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user_id');
+
+        let myPepperPos = -1;
+        let enemyPepperPos = -1;
+        let gameActive = false;
+        let stars = 10; // Real balans
+        const bet = 10;
+
+        const myCells = document.querySelectorAll('.my-cell');
+        const enemyCells = document.querySelectorAll('.enemy-cell');
+        const statusEl = document.getElementById('status');
+        const startBtn = document.getElementById('startBtn');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('starBalance').innerText = stars;
+        });
+
+        function selectMyPepperSpot(index) {
+            if (gameActive) return;
+            myCells.forEach(c => { c.innerHTML = ""; c.classList.remove('selected'); });
+            myPepperPos = index;
+            myCells[index].innerHTML = "🌶️";
+            myCells[index].classList.add('selected');
+            statusEl.innerText = "Tayyor! O'yinni boshlang.";
+            startBtn.style.display = "block";
+        }
+
+        function startGame() {
+            if (stars < bet) return tg.showAlert("Yulduzchalar kam!");
+            stars -= bet;
+            document.getElementById('starBalance').innerText = stars;
+            gameActive = true;
+            startBtn.style.display = "none";
+            statusEl.innerText = "Raqib qalampirini toping!";
+            enemyPepperPos = Math.floor(Math.random() * 6);
+            enemyCells.forEach(c => { c.innerHTML = ""; c.style.backgroundColor = "#2c3e50"; });
+        }
+
+        function attack(index) {
+            if (!gameActive || enemyCells[index].innerHTML !== "") return;
+            if (index === enemyPepperPos) {
+                enemyCells[index].innerHTML = "🌶️";
+                enemyCells[index].style.backgroundColor = "#2ecc71";
+                stars += bet * 2;
+                document.getElementById('starBalance').innerText = stars;
+                statusEl.innerText = "Yutdingiz! +20 ⭐️";
+                gameActive = false;
+                tg.HapticFeedback.notificationOccurred('success');
+                setTimeout(() => { if(confirm("Yana o'ynaysizmi?")) location.reload(); }, 1000);
+            } else {
+                enemyCells[index].innerHTML = "X";
+                enemyCells[index].classList.add('miss');
+                statusEl.innerText = "Raqib navbati...";
+                setTimeout(enemyTurn, 800);
+            }
+        }
+
+        function enemyTurn() {
+            if (!gameActive) return;
+            let pick;
+            do { pick = Math.floor(Math.random() * 6); } while (myCells[pick].innerHTML === "X");
+            if (pick === myPepperPos) {
+                myCells[pick].style.backgroundColor = "#e74c3c";
+                statusEl.innerText = "Raqib topdi! Yutqazdingiz.";
+                gameActive = false;
+                tg.HapticFeedback.notificationOccurred('error');
+                setTimeout(() => { if(confirm("Qayta o'ynaysizmi?")) location.reload(); }, 1000);
+            } else {
+                myCells[pick].innerHTML = "X";
+                myCells[pick].classList.add('miss');
+                statusEl.innerText = "Sizning navbatingiz!";
+            }
+        }
+    </script>
+</body>
+</html>
