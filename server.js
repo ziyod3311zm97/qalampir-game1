@@ -53,7 +53,17 @@ bot.onText(/\/start/, (msg) => {
 });
 
 // API: Foydalanuvchi ma'lumotlarini olish (Dashboard uchun)
-app.get('/api/user/:id', (req, res) => {
+app.get('/api/user/:id', (req, res) => {// 
+    API: TOP-10 g'oliblarni olish (Leaderboard)
+app.get('/api/leaderboard', (req, res) => {
+    db.all(`SELECT username, wins, stars FROM users ORDER BY wins DESC, stars DESC LIMIT 10`, [], (err, rows) => {
+        if (err) {
+            res.json([]);
+        } else {
+            res.json(rows);
+        }
+    });
+});
     const userId = req.params.id;
     db.get(`SELECT * FROM users WHERE id = ?`, [userId], (err, row) => {
         if (err || !row) {
