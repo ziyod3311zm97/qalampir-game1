@@ -24,7 +24,7 @@
             gap: 10px;
             margin-bottom: 15px;
             width: 100%;
-            max-width: 260px;
+            max-width: 280px;
         }
         .tab-btn {
             flex: 1;
@@ -43,14 +43,32 @@
             padding: 15px;
             border-radius: 12px;
             width: 100%;
-            max-width: 240px;
+            max-width: 280px;
             text-align: center;
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
             margin-bottom: 15px;
         }
         .dash-item { font-size: 15px; margin: 6px 0; color: #FFD700; }
 
+        /* Liderlar Jadvali Stili */
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        .leaderboard-table th, .leaderboard-table td {
+            padding: 8px 4px;
+            text-align: center;
+            border-bottom: 1px solid #333;
+        }
+        .leaderboard-table th { color: #888; text-transform: uppercase; }
+        .rank-1 { color: #FFD700; font-weight: bold; }
+        .rank-2 { color: #C0C0C0; font-weight: bold; }
+        .rank-3 { color: #CD7F32; font-weight: bold; }
+
         h2 { margin: 5px 0; font-size: 22px; color: #ffffff; }
+        h3 { margin: 10px 0 5px 0; font-size: 16px; color: #ffffff; }
         .status { font-size: 14px; color: #aaa; margin-bottom: 15px; height: 20px; text-align: center; }
         .label { font-size: 12px; color: #888; margin: 6px 0; text-transform: uppercase; letter-spacing: 1px; }
         .grid-container { display: grid; grid-template-columns: repeat(3, 65px); gap: 10px; }
@@ -60,7 +78,7 @@
         .cell.selected { border-color: #ffffff; box-shadow: 0 0 15px #3498db; }
         .cell:active { transform: scale(0.92); }
         .miss { color: #e74c3c; font-weight: bold; font-size: 30px; }
-        hr { width: 80%; border: 0; border-top: 1px solid #333; margin: 15px 0; }
+        hr { width: 80%; border: 0; border-top: 1px solid #333; margin: 12px 0; }
         .start-btn { background-color: #2ecc71; color: white; border: none; padding: 10px 25px; font-size: 16px; border-radius: 20px; margin-top: 15px; display: none; font-weight: bold; }
     </style>
 </head>
@@ -71,12 +89,29 @@
         <button class="tab-btn" onclick="switchTab('dash')">📊 Profil</button>
     </div>
 
-    <!-- Dashboard Bo'limi -->
+    <!-- Dashboard & Leaderboard Bo'limi -->
     <div id="dashSection" class="dashboard" style="display: none;">
-        <h3>Sizning Statisikangiz</h3>
+        <h3>Sizning Statistikangiz</h3>
         <div class="dash-item">Balans: <span id="dashStars">0</span> ⭐️</div>
         <div class="dash-item" style="color:#2ecc71;">G'alabalar: <span id="dashWins">0</span></div>
         <div class="dash-item" style="color:#e74c3c;">Mag'lubiyatlar: <span id="dashLosses">0</span></div>
+
+        <hr>
+
+        <h3>🏆 TOP-10 Liderlar</h3>
+        <table class="leaderboard-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>O'yinchi</th>
+                    <th>G'alaba</th>
+                    <th>Stars</th>
+                </tr>
+            </thead>
+            <tbody id="leaderboardBody">
+                <!-- Dinamik yuklanadi -->
+            </tbody>
+        </table>
     </div>
 
     <!-- O'yin Bo'limi -->
@@ -126,14 +161,39 @@
         const statusEl = document.getElementById('status');
         const startBtn = document.getElementById('startBtn');
 
-        // Baza ma'lumotlarini yuklash
+        // Baza ma'lumotlarini hamda Liderlar jadvalini yuklash
         function loadUserData() {
+            // Profil statistikasi
             fetch(`/api/user/${userId}`)
                 .then(res => res.json())
                 .then(data => {
                     document.getElementById('dashStars').innerText = data.stars;
                     document.getElementById('dashWins').innerText = data.wins;
                     document.getElementById('dashLosses').innerText = data.losses;
+                });
+
+            // TOP-10 Liderlarni yuklash
+            fetch('/api/leaderboard')
+                .then(res => res.json())
+                .then(data => {
+                    const tbody = document.getElementById('leaderboardBody');
+                    tbody.innerHTML = '';
+                    data.forEach((player, index) => {
+                        let rankClass = '';
+                        if (index === 0) rankClass = 'rank-1';
+                        else if (index === 1) rankClass = 'rank-2';
+                        else if (index === 2) rankClass = 'rank-3';
+
+                        const name = player.username || `User_${index+1}`;
+                        tbody.innerHTML += `
+                            <tr class="${rankClass}">
+                                <td>${index + 1}</td>
+                                <td>${name}</td>
+                                <td>${player.wins}</td>
+                                <td>${player.stars} ⭐️</td>
+                            </tr>
+                        `;
+                    });
                 });
         }
         loadUserData();
