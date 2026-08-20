@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3000;
 
 // Bot Tokens va Sozlamalar
 const TOKEN = '8809424395:AAFRdNm6HG168dtZzRDfrmqqM4fm1fsq708';
-const APP_URL = 'https://qalampir-app.vercel.app'; // O'zingizning hosting havolangiz
+const APP_URL = 'https://qalampir-game.onrender.com';
 
 const bot = new TelegramBot(TOKEN, { polling: true });
 
