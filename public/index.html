@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Qalampir Top</title>
+    <!-- Telegram WebApp SDK Script (Juda muhim!) -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #1c1c1e;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .score-box {
+            font-size: 18px;
+            color: #a1a1a6;
+        }
+
+        #score-display {
+            color: #34c759;
+            font-weight: bold;
+        }
+
+        .game-area {
+            background-color: #2c2c2e;
+            border-radius: 16px;
+            padding: 20px;
+            width: 100%;
+            max-width: 320px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            justify-items: center;
+        }
+
+        .chili-box {
+            width: 80px;
+            height: 80px;
+            background-color: #3a3a3c;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .chili-box:active {
+            transform: scale(0.95);
+            background-color: #48484a;
+        }
+
+        .chili-box.correct {
+            background-color: #34c759; /* Yashil */
+        }
+
+        .chili-box.incorrect {
+            background-color: #ff3b30; /* Qizil */
+        }
+
+        .hidden-chili {
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .correct .hidden-chili, .incorrect .hidden-chili {
+            opacity: 1;
+        }
+
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1c1c1e;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .btn {
+            background-color: #34c759;
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background 0.2s;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Boshlash ekrani (Start Screen) -->
+    <div id="start-screen" class="start-screen">
+        <div class="game-card">
+            <h1>🌶️ Qalampir Top</h1>
+            <p style="color: #a1a1a6; text-align: center;">O'yinga xush kelibsiz! Yashirin qalampirni toping.</p>
+            <button class="btn" onclick="startGame()">Boshlash</button>
+        </div>
+    </div>
+
+    <!-- Asosiy o'yin ekrani (Game Screen - yashirin) -->
+    <div id="game-main" class="game-main" style="display: none;">
+        <div class="header">
+            <h1>Qalampir Top</h1>
+            <div class="score-box">Balans: <span id="score-display">0</span> Stars</div>
+        </div>
+
+        <div class="game-area">
+            <div class="chili-box" onclick="checkBox(0)"><span class="hidden-chili">🌶️</span></div>
+            <div class="chili-box" onclick="checkBox(1)"><span class="hidden-chili">🌶️</span></div>
+            <div class="chili-box" onclick="checkBox(2)"><span class="hidden-chili">🌶️</span></div>
+            <div class="chili-box" onclick="checkBox(3)"><span class="hidden-chili">🌶️</span></div>
+            <div class="chili-box" onclick="checkBox(4)"><span class="hidden-chili">🌶️</span></div>
+            <div class="chili-box" onclick="checkBox(5)"><span class="hidden-chili">🌶️</span></div>
+            <div class="chili-box" onclick="checkBox(6)"><span class="hidden-chili">🌶️</span></div>
+            <div class="chili-box" onclick="checkBox(7)"><span class="hidden-chili">🌶️</span></div>
+            <div class="chili-box" onclick="checkBox(8)"><span class="hidden-chili">🌶️</span></div>
+        </div>
+
+        <p id="game-status" style="margin-top: 20px; text-align: center; color: #a1a1a6;"></p>
+    </div>
+
+    <script>
+        // Telegram WebApp obyektini tashabbuslashtirish
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Oynani kengaytirish
+
+        let score = 0;
+        let correctIndex;
+        let isGameOver = false;
+
+        function startGame() {
+            // Start ekranini yashirish va o'yinni ko'rsatish
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('game-main').style.display = 'block';
+            resetRound();
+        }
+
+        function resetRound() {
+            isGameOver = false;
+            document.getElementById('game-status').innerText = 'Qutichalardan birini tanlang!';
+            
+            // Hamma qutichalarni tozalash
+            const boxes = document.querySelectorAll('.chili-box');
+            boxes.forEach(box => {
+                box.classList.remove('correct', 'incorrect');
+            });
+
+            // Tasodifiy qutichaga qalampir yashirish
+            correctIndex = Math.floor(Math.random() * 9);
+        }
+
+        function checkBox(index) {
+            if (isGameOver) return;
+
+            const boxes = document.querySelectorAll('.chili-box');
+            const statusDisplay = document.getElementById('game-status');
+            const scoreDisplay = document.getElementById('score-display');
+
+            if (index === correctIndex) {
+                // To'g'ri topildi!
+                boxes[index].classList.add('correct');
+                score += 1;
+                scoreDisplay.innerText = score;
+                statusDisplay.innerText = 'To\'g\'ri topdingiz! Keyingi bosqich...';
+                
+                // Telegramga o'yin tugaganligi haqida xabar yuborish
+                // (Server-side integratsiyadan keyin bu Stars bilan bog'lanadi)
+                // tg.sendData(JSON.stringify({type: 'game_win', score: score})); 
+
+            } else {
+                // Noto'g'ri topildi
+                boxes[index].classList.add('incorrect');
+                boxes[correctIndex].classList.add('correct'); // To'g'risini ko'rsatish
+                statusDisplay.innerText = 'Yutqazdingiz! Qayta urinib ko\'ring.';
+                
+                // tg.sendData(JSON.stringify({type: 'game_lose', score: score}));
+            }
+
+            isGameOver = true;
+            // 2 soniyadan keyin keyingi bosqichga o'tish
+            setTimeout(resetRound, 2000);
+        }
+    </script>
+</body>
+</html>
