@@ -3,145 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Qalampir Top - Online</title>
+    <title>Qalampir Top - Telegram Stars PvP</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         body {
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #121212;
             color: #E0E0E0;
             display: flex;
             flex-direction: column;
             align-items: center;
             margin: 0;
-            padding: 15px;
+            padding: 12px;
             user-select: none;
         }
-        
-        .nav-tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            width: 100%;
-            max-width: 280px;
-        }
-        .tab-btn {
-            flex: 1;
-            padding: 8px;
-            background-color: #2c3e50;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .tab-btn.active { background-color: #3498db; }
 
-        .dashboard {
-            background: #1e1e1e;
-            padding: 15px;
-            border-radius: 12px;
-            width: 100%;
-            max-width: 280px;
-            text-align: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            margin-bottom: 15px;
-        }
-        .dash-item { font-size: 15px; margin: 6px 0; color: #FFD700; }
+        .nav-tabs { display: flex; gap: 8px; margin-bottom: 12px; width: 100%; max-width: 320px; }
+        .tab-btn { flex: 1; padding: 10px; background: #2c3e50; color: #fff; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .tab-btn.active { background: #3498db; }
 
-        /* Liderlar Jadvali Stili */
-        .leaderboard-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 13px;
-        }
-        .leaderboard-table th, .leaderboard-table td {
-            padding: 8px 4px;
-            text-align: center;
-            border-bottom: 1px solid #333;
-        }
-        .leaderboard-table th { color: #888; text-transform: uppercase; }
+        .dashboard { background: #1e1e1e; padding: 15px; border-radius: 14px; width: 100%; max-width: 320px; box-sizing: border-box; text-align: center; }
+        .dash-item { font-size: 16px; margin: 8px 0; color: #FFD700; font-weight: bold; }
+
+        .btn-action { background: linear-gradient(45deg, #2ecc71, #27ae60); color: white; border: none; padding: 10px 16px; border-radius: 20px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 8px; }
+        .btn-buy { background: linear-gradient(45deg, #f1c40f, #f39c12); color: #121212; border: none; padding: 10px 16px; border-radius: 20px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 8px; }
+
+        .rooms-container { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 320px; margin-top: 10px; }
+        .room-card { background: #2a2a2a; padding: 12px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #444; }
+        .room-title { font-weight: bold; color: #FFD700; }
+        .room-btn { background: #e74c3c; color: white; border: none; padding: 8px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+
+        .leaderboard-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        .leaderboard-table th, .leaderboard-table td { padding: 8px 4px; text-align: center; border-bottom: 1px solid #333; }
         .rank-1 { color: #FFD700; font-weight: bold; }
-        .rank-2 { color: #C0C0C0; font-weight: bold; }
-        .rank-3 { color: #CD7F32; font-weight: bold; }
 
-        h2 { margin: 5px 0; font-size: 22px; color: #ffffff; }
-        h3 { margin: 10px 0 5px 0; font-size: 16px; color: #ffffff; }
-        .status { font-size: 14px; color: #aaa; margin-bottom: 15px; height: 20px; text-align: center; }
-        .label { font-size: 12px; color: #888; margin: 6px 0; text-transform: uppercase; letter-spacing: 1px; }
+        .timer-box { font-size: 16px; font-weight: bold; color: #e74c3c; margin: 5px 0; display: none; }
+        .status { font-size: 14px; color: #aaa; margin-bottom: 8px; height: 20px; text-align: center; font-weight: bold; }
         .grid-container { display: grid; grid-template-columns: repeat(3, 65px); gap: 10px; }
-        .cell { width: 65px; height: 65px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; transition: 0.2s; box-shadow: 0 3px 6px rgba(0,0,0,0.4); }
-        .my-cell { background-color: #3498db; border: 2px solid #2980b9; }
-        .enemy-cell { background-color: #2c3e50; border: 2px solid #34495e; }
+        .cell { width: 65px; height: 65px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; }
+        .my-cell { background: #3498db; border: 2px solid #2980b9; }
+        .enemy-cell { background: #2c3e50; border: 2px solid #34495e; }
         .cell.selected { border-color: #ffffff; box-shadow: 0 0 15px #3498db; }
-        .cell:active { transform: scale(0.92); }
-        .miss { color: #e74c3c; font-weight: bold; font-size: 30px; }
-        hr { width: 80%; border: 0; border-top: 1px solid #333; margin: 12px 0; }
-        .start-btn { background-color: #2ecc71; color: white; border: none; padding: 10px 25px; font-size: 16px; border-radius: 20px; margin-top: 15px; display: none; font-weight: bold; }
+        .miss { color: #e74c3c; font-weight: bold; font-size: 28px; }
     </style>
 </head>
 <body>
 
     <div class="nav-tabs">
         <button class="tab-btn active" onclick="switchTab('game')">🎮 O'yin</button>
-        <button class="tab-btn" onclick="switchTab('dash')">📊 Profil</button>
+        <button class="tab-btn" onclick="switchTab('dash')">📊 Profil & Bonus</button>
     </div>
 
-    <!-- Dashboard & Leaderboard Bo'limi -->
+    <!-- Dashboard & Profil -->
     <div id="dashSection" class="dashboard" style="display: none;">
         <h3>Sizning Statistikangiz</h3>
         <div class="dash-item">Balans: <span id="dashStars">0</span> ⭐️</div>
-        <div class="dash-item" style="color:#2ecc71;">G'alabalar: <span id="dashWins">0</span></div>
-        <div class="dash-item" style="color:#e74c3c;">Mag'lubiyatlar: <span id="dashLosses">0</span></div>
+        <div>G'alabalar: <span id="dashWins" style="color:#2ecc71;">0</span> | Mag'lubiyatlar: <span id="dashLosses" style="color:#e74c3c;">0</span></div>
 
-        <hr>
+        <button class="btn-buy" onclick="buyStars(50, 10)">⚡️ 50 ⭐️ Sotib olish (10 Telegram Stars)</button>
+
+        <hr style="border-color: #333; margin: 15px 0;">
+
+        <h3>🎁 Kunlik Bonus (7 Kun)</h3>
+        <div id="bonusStatus" style="font-size: 12px; color: #aaa; margin-bottom: 5px;">Bugun 1 ta o'yin o'ynang va 1 ⭐️ oling!</div>
+        <button class="btn-action" onclick="claimDailyBonus()">🎁 Bonusni Olish</button>
+
+        <button class="btn-action" style="background: linear-gradient(45deg, #8e44ad, #9b59b6);" onclick="shareInviteLink()">🚀 Do'stlarni Taklif Qilish (+5 ⭐️)</button>
+
+        <hr style="border-color: #333; margin: 15px 0;">
 
         <h3>🏆 TOP-10 Liderlar</h3>
         <table class="leaderboard-table">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>O'yinchi</th>
-                    <th>G'alaba</th>
-                    <th>Stars</th>
-                </tr>
-            </thead>
-            <tbody id="leaderboardBody">
-                <!-- Dinamik yuklanadi -->
-            </tbody>
+            <thead><tr><th>#</th><th>O'yinchi</th><th>G'alaba</th><th>Stars</th></tr></thead>
+            <tbody id="leaderboardBody"></tbody>
         </table>
     </div>
 
-    <!-- O'yin Bo'limi -->
+    <!-- O'yin va Xonalar Bo'limi -->
     <div id="gameSection" style="display: flex; flex-direction: column; align-items: center;">
-        <h2>🌶️ Qalampir Top (PvP)</h2>
-        <div id="status" class="status">O'z qalampiringizni yashiring!</div>
+        <h2>🌶️ Qalampir Top</h2>
+        <div id="status" class="status">O'z qalampiringizni joylashtiring!</div>
+        <div id="timerBox" class="timer-box">⏳ Vaqt: <span id="timerVal">15</span>s</div>
 
-        <div class="label">Raqib maydoni</div>
+        <div style="font-size: 11px; color: #888; text-transform: uppercase;">Raqib Maydoni (<span id="enemyName">Raqib</span>)</div>
         <div class="grid-container" id="enemyGrid">
-            <div class="cell enemy-cell" onclick="attack(0)"></div>
-            <div class="cell enemy-cell" onclick="attack(1)"></div>
-            <div class="cell enemy-cell" onclick="attack(2)"></div>
-            <div class="cell enemy-cell" onclick="attack(3)"></div>
-            <div class="cell enemy-cell" onclick="attack(4)"></div>
-            <div class="cell enemy-cell" onclick="attack(5)"></div>
+            <div class="cell enemy-cell" onclick="attack(0)"></div><div class="cell enemy-cell" onclick="attack(1)"></div><div class="cell enemy-cell" onclick="attack(2)"></div>
+            <div class="cell enemy-cell" onclick="attack(3)"></div><div class="cell enemy-cell" onclick="attack(4)"></div><div class="cell enemy-cell" onclick="attack(5)"></div>
         </div>
 
-        <hr>
+        <hr style="width: 80%; border-color: #333; margin: 10px 0;">
 
-        <div class="label">Sizning maydoningiz</div>
+        <div style="font-size: 11px; color: #888; text-transform: uppercase;">Sizning Maydoningiz</div>
         <div class="grid-container" id="myGrid">
-            <div class="cell my-cell" onclick="selectMyPepperSpot(0)"></div>
-            <div class="cell my-cell" onclick="selectMyPepperSpot(1)"></div>
-            <div class="cell my-cell" onclick="selectMyPepperSpot(2)"></div>
-            <div class="cell my-cell" onclick="selectMyPepperSpot(3)"></div>
-            <div class="cell my-cell" onclick="selectMyPepperSpot(4)"></div>
-            <div class="cell my-cell" onclick="selectMyPepperSpot(5)"></div>
+            <div class="cell my-cell" onclick="selectSpot(0)"></div><div class="cell my-cell" onclick="selectSpot(1)"></div><div class="cell my-cell" onclick="selectSpot(2)"></div>
+            <div class="cell my-cell" onclick="selectSpot(3)"></div><div class="cell my-cell" onclick="selectSpot(4)"></div><div class="cell my-cell" onclick="selectSpot(5)"></div>
         </div>
 
-        <button id="startBtn" class="start-btn" onclick="searchOpponent()">Raqib Izlash (10 ⭐️)</button>
+        <!-- Xonalar Ro'yxati -->
+        <div id="roomsSection" class="rooms-container" style="display: none;">
+            <div style="text-align: center; font-weight: bold; margin-bottom: 5px;">Xonani Tanlang:</div>
+            <div class="room-card"><span class="room-title">1-Xona (10 ⭐️)</span><button class="room-btn" onclick="joinRoom(10)">Kirish</button></div>
+            <div class="room-card"><span class="room-title">2-Xona (20 ⭐️)</span><button class="room-btn" onclick="joinRoom(20)">Kirish</button></div>
+            <div class="room-card"><span class="room-title">3-Xona (50 ⭐️)</span><button class="room-btn" onclick="joinRoom(50)">Kirish</button></div>
+            <div class="room-card"><span class="room-title">4-Xona (100 ⭐️)</span><button class="room-btn" onclick="joinRoom(100)">Kirish</button></div>
+            <div class="room-card"><span class="room-title">5-Xona (200 ⭐️)</span><button class="room-btn" onclick="joinRoom(200)">Kirish</button></div>
+        </div>
     </div>
 
     <script>
@@ -151,6 +118,7 @@
         const socket = io();
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('user_id') || Math.floor(Math.random() * 1000000);
+        const userName = tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || `User_${userId}`;
 
         let myPepperPos = -1;
         let currentRoomId = null;
@@ -159,11 +127,11 @@
         const myCells = document.querySelectorAll('.my-cell');
         const enemyCells = document.querySelectorAll('.enemy-cell');
         const statusEl = document.getElementById('status');
-        const startBtn = document.getElementById('startBtn');
+        const roomsSection = document.getElementById('roomsSection');
+        const timerBox = document.getElementById('timerBox');
+        const timerVal = document.getElementById('timerVal');
 
-        // Baza ma'lumotlarini hamda Liderlar jadvalini yuklash
         function loadUserData() {
-            // Profil statistikasi
             fetch(`/api/user/${userId}`)
                 .then(res => res.json())
                 .then(data => {
@@ -172,27 +140,13 @@
                     document.getElementById('dashLosses').innerText = data.losses;
                 });
 
-            // TOP-10 Liderlarni yuklash
             fetch('/api/leaderboard')
                 .then(res => res.json())
                 .then(data => {
                     const tbody = document.getElementById('leaderboardBody');
                     tbody.innerHTML = '';
-                    data.forEach((player, index) => {
-                        let rankClass = '';
-                        if (index === 0) rankClass = 'rank-1';
-                        else if (index === 1) rankClass = 'rank-2';
-                        else if (index === 2) rankClass = 'rank-3';
-
-                        const name = player.username || `User_${index+1}`;
-                        tbody.innerHTML += `
-                            <tr class="${rankClass}">
-                                <td>${index + 1}</td>
-                                <td>${name}</td>
-                                <td>${player.wins}</td>
-                                <td>${player.stars} ⭐️</td>
-                            </tr>
-                        `;
+                    data.forEach((p, i) => {
+                        tbody.innerHTML += `<tr class="${i===0?'rank-1':''}"><td>${i+1}</td><td>${p.username}</td><td>${p.wins}</td><td>${p.stars} ⭐️</td></tr>`;
                     });
                 });
         }
@@ -212,30 +166,68 @@
             }
         }
 
-        function selectMyPepperSpot(index) {
+        function selectSpot(index) {
             if (currentRoomId) return;
             myCells.forEach(c => { c.innerHTML = ""; c.classList.remove('selected'); });
             myPepperPos = index;
             myCells[index].innerHTML = "🌶️";
             myCells[index].classList.add('selected');
-            statusEl.innerText = "Tayyor! Raqib izlashni bosing.";
-            startBtn.style.display = "block";
+            statusEl.innerText = "Xonani tanlang!";
+            roomsSection.style.display = "flex";
         }
 
-        function searchOpponent() {
-            if (myPepperPos === -1) return;
-            startBtn.style.display = "none";
+        function joinRoom(bet) {
+            if (myPepperPos === -1) return alert("Avval qalampiringizni joylashtiring!");
+            roomsSection.style.display = "none";
             statusEl.innerText = "Raqib izlanmoqda...";
-            socket.emit('join_game', { userId, pepperPos: myPepperPos });
+            socket.emit('join_room', { userId, username: userName, bet, pepperPos: myPepperPos });
         }
 
-        // Socket Eventlar
+        function claimDailyBonus() {
+            fetch('/api/claim-daily-bonus', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            }).then(res => res.json()).then(data => {
+                alert(data.message);
+                loadUserData();
+            });
+        }
+
+        function shareInviteLink() {
+            const inviteUrl = `https://t.me/qalampir_top_bot?start=${userId}`;
+            const text = "🌶️ Qalampir Top PvP o'yinida men bilan bellash! Ro'yxatdan o'tsang bonus yulduzlar beriladi:";
+            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(inviteUrl)}&text=${encodeURIComponent(text)}`);
+        }
+
+        function buyStars(starAmount, xtrCost) {
+            fetch('/api/buy-stars', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, starAmount, xtrCost })
+            }).then(res => res.json()).then(data => {
+                if (data.success) tg.openInvoice(data.invoiceLink);
+                else alert(data.message);
+            });
+        }
+
+        socket.on('error_msg', (msg) => { alert(msg); location.reload(); });
         socket.on('waiting', (msg) => { statusEl.innerText = msg; });
 
-        socket.on('game_start', ({ roomId, turn }) => {
+        socket.on('game_start', ({ roomId, turn, p1, p2 }) => {
             currentRoomId = roomId;
+            const enemy = (p1.id == userId) ? p2 : p1;
+            document.getElementById('enemyName').innerText = enemy.name;
+            
             isMyTurn = (turn === socket.id);
-            statusEl.innerText = isMyTurn ? "Raqib topildi! Sizning navbatingiz." : "Raqib topildi! Raqib navbati.";
+            statusEl.innerText = isMyTurn ? "Sizning navbatingiz!" : `${enemy.name} navbati...`;
+            timerBox.style.display = "block";
+        });
+
+        socket.on('timer_update', ({ timeLeft, turn }) => {
+            timerVal.innerText = timeLeft;
+            isMyTurn = (turn === socket.id);
+            statusEl.innerText = isMyTurn ? "Sizning navbatingiz!" : "Raqib navbati...";
         });
 
         function attack(index) {
@@ -243,28 +235,27 @@
             socket.emit('make_move', { roomId: currentRoomId, cellIndex: index });
         }
 
-        socket.on('move_result', ({ attacker, cellIndex, hit, nextTurn }) => {
-            if (attacker == userId) {
+        socket.on('move_result', ({ attackerName, cellIndex, nextTurn }) => {
+            if (attackerName === userName) {
                 enemyCells[cellIndex].innerHTML = "X";
                 enemyCells[cellIndex].classList.add('miss');
             } else {
                 myCells[cellIndex].innerHTML = "X";
                 myCells[cellIndex].classList.add('miss');
             }
-            isMyTurn = (nextTurn === socket.id);
-            statusEl.innerText = isMyTurn ? "Sizning navbatingiz!" : "Raqib navbati...";
+            isMyTurn = (nextTurn === socket.id || nextTurn === userId);
         });
 
-        socket.on('game_over', ({ winner, loser, hitIndex }) => {
-            if (winner == userId) {
-                statusEl.innerText = "🎉 TABRIKLAYMIZ! G'alaba qozondingiz (+10 ⭐️)";
-                tg.HapticFeedback.notificationOccurred('success');
+        socket.on('game_over', ({ winnerName }) => {
+            timerBox.style.display = "none";
+            if (winnerName === userName) {
+                statusEl.innerText = "🎉 TABRIKLAYMIZ! G'alaba qozondingiz!";
             } else {
-                statusEl.innerText = "❌ YUTQAZDINGIZ! Raqib qalampirni topdi.";
-                tg.HapticFeedback.notificationOccurred('error');
+                statusEl.innerText = `❌ MAG'LUBIYAT! ${winnerName} g'alaba qozondi.`;
             }
-            setTimeout(() => location.reload(), 2500);
+            setTimeout(() => location.reload(), 3000);
         });
     </script>
 </body>
-</html>
+            </html>
+            
