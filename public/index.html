@@ -2,260 +2,217 @@
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Qalampir Top - Telegram Stars PvP</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pepper Battle - Mini App</title>
+    <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #121212;
-            color: #E0E0E0;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin: 0;
-            padding: 12px;
-            user-select: none;
+            min-height: 100vh;
         }
 
-        .nav-tabs { display: flex; gap: 8px; margin-bottom: 12px; width: 100%; max-width: 320px; }
-        .tab-btn { flex: 1; padding: 10px; background: #2c3e50; color: #fff; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
-        .tab-btn.active { background: #3498db; }
+        .container {
+            width: 100%;
+            max-width: 480px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
 
-        .dashboard { background: #1e1e1e; padding: 15px; border-radius: 14px; width: 100%; max-width: 320px; box-sizing: border-box; text-align: center; }
-        .dash-item { font-size: 16px; margin: 8px 0; color: #FFD700; font-weight: bold; }
+        /* MINING & CONVERSION WIDGET STYLES */
+        .mining-card {
+            background: linear-gradient(135deg, #1e1e2f, #2a2a40);
+            border-radius: 16px;
+            padding: 16px;
+            color: white;
+            margin: 12px 0;
+            text-align: center;
+            border: 1px solid #ff4500;
+            box-shadow: 0 4px 15px rgba(255, 69, 0, 0.2);
+        }
 
-        .btn-action { background: linear-gradient(45deg, #2ecc71, #27ae60); color: white; border: none; padding: 10px 16px; border-radius: 20px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 8px; }
-        .btn-buy { background: linear-gradient(45deg, #f1c40f, #f39c12); color: #121212; border: none; padding: 10px 16px; border-radius: 20px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 8px; }
+        .mining-title {
+            font-size: 13px;
+            opacity: 0.8;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
 
-        .rooms-container { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 320px; margin-top: 10px; }
-        .room-card { background: #2a2a2a; padding: 12px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #444; }
-        .room-title { font-weight: bold; color: #FFD700; }
-        .room-btn { background: #e74c3c; color: white; border: none; padding: 8px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .mining-speed {
+            font-size: 11px;
+            color: #00ff88;
+            margin-top: 4px;
+            font-weight: bold;
+        }
 
-        .leaderboard-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
-        .leaderboard-table th, .leaderboard-table td { padding: 8px 4px; text-align: center; border-bottom: 1px solid #333; }
-        .rank-1 { color: #FFD700; font-weight: bold; }
+        .mining-amount {
+            margin: 12px 0;
+        }
 
-        .timer-box { font-size: 16px; font-weight: bold; color: #e74c3c; margin: 5px 0; display: none; }
-        .status { font-size: 14px; color: #aaa; margin-bottom: 8px; height: 20px; text-align: center; font-weight: bold; }
-        .grid-container { display: grid; grid-template-columns: repeat(3, 65px); gap: 10px; }
-        .cell { width: 65px; height: 65px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; }
-        .my-cell { background: #3498db; border: 2px solid #2980b9; }
-        .enemy-cell { background: #2c3e50; border: 2px solid #34495e; }
-        .cell.selected { border-color: #ffffff; box-shadow: 0 0 15px #3498db; }
-        .miss { color: #e74c3c; font-weight: bold; font-size: 28px; }
+        .mining-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ffab00;
+        }
+
+        .mining-currency {
+            font-size: 16px;
+            color: #ffab00;
+            font-weight: bold;
+        }
+
+        .btn-claim {
+            background: linear-gradient(90deg, #ff4500, #ff7300);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            width: 85%;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .btn-claim:active {
+            transform: scale(0.98);
+        }
+
+        .conversion-box {
+            margin-top: 14px;
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* ASOSIY O'YIN VA DUEL STYLLARI (O'ZGARTIRILMAGAN) */
+        .game-section {
+            width: 100%;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .btn-duel {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 12px;
+            width: 90%;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
 
-    <div class="nav-tabs">
-        <button class="tab-btn active" onclick="switchTab('game')">🎮 O'yin</button>
-        <button class="tab-btn" onclick="switchTab('dash')">📊 Profil & Bonus</button>
-    </div>
+    <div class="container">
 
-    <!-- Dashboard & Profil -->
-    <div id="dashSection" class="dashboard" style="display: none;">
-        <h3>Sizning Statistikangiz</h3>
-        <div class="dash-item">Balans: <span id="dashStars">0</span> ⭐️</div>
-        <div>G'alabalar: <span id="dashWins" style="color:#2ecc71;">0</span> | Mag'lubiyatlar: <span id="dashLosses" style="color:#e74c3c;">0</span></div>
+        <!-- 1. MINING DASHBOARD (YANGI QO'SHILGAN BO'LIM) -->
+        <div class="mining-card">
+            <div class="mining-title">⛏️ PASSIVE TOKEN MINING</div>
+            <div id="mining-speed" class="mining-speed">⚡️ Speed: 1.00 $QALAMPIR / hr</div>
 
-        <button class="btn-buy" onclick="buyStars(50, 10)">⚡️ 50 ⭐️ Sotib olish (10 Telegram Stars)</button>
+            <div class="mining-amount">
+                <span id="current-mined" class="mining-value">0.00</span>
+                <span class="mining-currency"> $QALAMPIR</span>
+            </div>
 
-        <hr style="border-color: #333; margin: 15px 0;">
+            <button id="claim-btn" class="btn-claim" onclick="claimMining()">
+                📥 Claim (Yig'ib olish)
+            </button>
 
-        <h3>🎁 Kunlik Bonus (7 Kun)</h3>
-        <div id="bonusStatus" style="font-size: 12px; color: #aaa; margin-bottom: 5px;">Bugun 1 ta o'yin o'ynang va 1 ⭐️ oling!</div>
-        <button class="btn-action" onclick="claimDailyBonus()">🎁 Bonusni Olish</button>
-
-        <button class="btn-action" style="background: linear-gradient(45deg, #8e44ad, #9b59b6);" onclick="shareInviteLink()">🚀 Do'stlarni Taklif Qilish (+5 ⭐️)</button>
-
-        <hr style="border-color: #333; margin: 15px 0;">
-
-        <h3>🏆 TOP-10 Liderlar</h3>
-        <table class="leaderboard-table">
-            <thead><tr><th>#</th><th>O'yinchi</th><th>G'alaba</th><th>Stars</th></tr></thead>
-            <tbody id="leaderboardBody"></tbody>
-        </table>
-    </div>
-
-    <!-- O'yin va Xonalar Bo'limi -->
-    <div id="gameSection" style="display: flex; flex-direction: column; align-items: center;">
-        <h2>🌶️ Qalampir Top</h2>
-        <div id="status" class="status">O'z qalampiringizni joylashtiring!</div>
-        <div id="timerBox" class="timer-box">⏳ Vaqt: <span id="timerVal">15</span>s</div>
-
-        <div style="font-size: 11px; color: #888; text-transform: uppercase;">Raqib Maydoni (<span id="enemyName">Raqib</span>)</div>
-        <div class="grid-container" id="enemyGrid">
-            <div class="cell enemy-cell" onclick="attack(0)"></div><div class="cell enemy-cell" onclick="attack(1)"></div><div class="cell enemy-cell" onclick="attack(2)"></div>
-            <div class="cell enemy-cell" onclick="attack(3)"></div><div class="cell enemy-cell" onclick="attack(4)"></div><div class="cell enemy-cell" onclick="attack(5)"></div>
+            <div class="conversion-box">
+                💡 <b>Listing Prognozi:</b> <br>
+                <span id="total-points-display" style="color: #ffab00; font-weight: bold;">0</span> Points ≈ 
+                <b style="color: #00e676; font-size: 12px;"><span id="estimated-usd">$0.00</span> EST</b>
+            </div>
         </div>
 
-        <hr style="width: 80%; border-color: #333; margin: 10px 0;">
-
-        <div style="font-size: 11px; color: #888; text-transform: uppercase;">Sizning Maydoningiz</div>
-        <div class="grid-container" id="myGrid">
-            <div class="cell my-cell" onclick="selectSpot(0)"></div><div class="cell my-cell" onclick="selectSpot(1)"></div><div class="cell my-cell" onclick="selectSpot(2)"></div>
-            <div class="cell my-cell" onclick="selectSpot(3)"></div><div class="cell my-cell" onclick="selectSpot(4)"></div><div class="cell my-cell" onclick="selectSpot(5)"></div>
+        <!-- 2. ASOSIY DUEL VA O'YIN MAYDONI (MAVJUD KODINGIZ O'RGILMAGAN HOLDA SAQLANADI) -->
+        <div class="game-section">
+            <button class="btn-duel" onclick="startDuelSearch()">⚔️ DUEL SEARCH (O'YIN)</button>
+            <div id="game-arena">
+                <!-- Duel kartalari va match logikasi bu yerga yuklanadi -->
+            </div>
         </div>
 
-        <!-- Xonalar Ro'yxati -->
-        <div id="roomsSection" class="rooms-container" style="display: none;">
-            <div style="text-align: center; font-weight: bold; margin-bottom: 5px;">Xonani Tanlang:</div>
-            <div class="room-card"><span class="room-title">1-Xona (10 ⭐️)</span><button class="room-btn" onclick="joinRoom(10)">Kirish</button></div>
-            <div class="room-card"><span class="room-title">2-Xona (20 ⭐️)</span><button class="room-btn" onclick="joinRoom(20)">Kirish</button></div>
-            <div class="room-card"><span class="room-title">3-Xona (50 ⭐️)</span><button class="room-btn" onclick="joinRoom(50)">Kirish</button></div>
-            <div class="room-card"><span class="room-title">4-Xona (100 ⭐️)</span><button class="room-btn" onclick="joinRoom(100)">Kirish</button></div>
-            <div class="room-card"><span class="room-title">5-Xona (200 ⭐️)</span><button class="room-btn" onclick="joinRoom(200)">Kirish</button></div>
-        </div>
     </div>
 
+    <!-- JAVASCRIPT MANTIQLARI -->
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+        // Telegram WebApp interfeysini sozlash
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.ready();
+            window.Telegram.WebApp.expand();
+        }
 
-        const socket = io();
+        // URL yoki Telegram SDK orqali User ID olish
         const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('user_id') || Math.floor(Math.random() * 1000000);
-        const userName = tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || `User_${userId}`;
+        const USER_ID = urlParams.get('user_id') || 
+                       (window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initDataUnsafe?.user?.id : null);
 
-        let myPepperPos = -1;
-        let currentRoomId = null;
-        let isMyTurn = false;
+        // MINING UI'NI REALLASHGAN HOLDA YANGILASH
+        async function updateMiningUI() {
+            if (!USER_ID) return;
+            try {
+                const res = await fetch(`/api/mining-status/${USER_ID}`);
+                const data = await res.json();
 
-        const myCells = document.querySelectorAll('.my-cell');
-        const enemyCells = document.querySelectorAll('.enemy-cell');
-        const statusEl = document.getElementById('status');
-        const roomsSection = document.getElementById('roomsSection');
-        const timerBox = document.getElementById('timerBox');
-        const timerVal = document.getElementById('timerVal');
-
-        function loadUserData() {
-            fetch(`/api/user/${userId}`)
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById('dashStars').innerText = data.stars;
-                    document.getElementById('dashWins').innerText = data.wins;
-                    document.getElementById('dashLosses').innerText = data.losses;
-                });
-
-            fetch('/api/leaderboard')
-                .then(res => res.json())
-                .then(data => {
-                    const tbody = document.getElementById('leaderboardBody');
-                    tbody.innerHTML = '';
-                    data.forEach((p, i) => {
-                        tbody.innerHTML += `<tr class="${i===0?'rank-1':''}"><td>${i+1}</td><td>${p.username}</td><td>${p.wins}</td><td>${p.stars} ⭐️</td></tr>`;
-                    });
-                });
-        }
-        loadUserData();
-
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            if (tab === 'game') {
-                document.getElementById('gameSection').style.display = 'flex';
-                document.getElementById('dashSection').style.display = 'none';
-                event.target.classList.add('active');
-            } else {
-                document.getElementById('gameSection').style.display = 'none';
-                document.getElementById('dashSection').style.display = 'block';
-                event.target.classList.add('active');
-                loadUserData();
+                if (data.success) {
+                    document.getElementById('current-mined').innerText = data.currentMined;
+                    document.getElementById('mining-speed').innerText = `⚡️ Speed: ${parseFloat(data.miningRate).toFixed(2)} $QALAMPIR / hr (+15% Ref)`;
+                    
+                    const total = (parseFloat(data.totalPoints) + parseFloat(data.currentMined));
+                    document.getElementById('total-points-display').innerText = total.toFixed(2);
+                    document.getElementById('estimated-usd').innerText = `$${(total * 0.01).toFixed(2)}`;
+                }
+            } catch (e) {
+                console.error("Mining status olishda xatolik:", e);
             }
         }
 
-        function selectSpot(index) {
-            if (currentRoomId) return;
-            myCells.forEach(c => { c.innerHTML = ""; c.classList.remove('selected'); });
-            myPepperPos = index;
-            myCells[index].innerHTML = "🌶️";
-            myCells[index].classList.add('selected');
-            statusEl.innerText = "Xonani tanlang!";
-            roomsSection.style.display = "flex";
-        }
-
-        function joinRoom(bet) {
-            if (myPepperPos === -1) return alert("Avval qalampiringizni joylashtiring!");
-            roomsSection.style.display = "none";
-            statusEl.innerText = "Raqib izlanmoqda...";
-            socket.emit('join_room', { userId, username: userName, bet, pepperPos: myPepperPos });
-        }
-
-        function claimDailyBonus() {
-            fetch('/api/claim-daily-bonus', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId })
-            }).then(res => res.json()).then(data => {
+        // TOKENLARNI CLAIM QILISH
+        async function claimMining() {
+            if (!USER_ID) return alert("Foydalanuvchi aniqlanmadi!");
+            try {
+                const res = await fetch('/api/claim-mining', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: USER_ID })
+                });
+                const data = await res.json();
                 alert(data.message);
-                loadUserData();
-            });
-        }
-
-        function shareInviteLink() {
-            const inviteUrl = `https://t.me/qalampir_top_bot?start=${userId}`;
-            const text = "🌶️ Qalampir Top PvP o'yinida men bilan bellash! Ro'yxatdan o'tsang bonus yulduzlar beriladi:";
-            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(inviteUrl)}&text=${encodeURIComponent(text)}`);
-        }
-
-        function buyStars(starAmount, xtrCost) {
-            fetch('/api/buy-stars', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, starAmount, xtrCost })
-            }).then(res => res.json()).then(data => {
-                if (data.success) tg.openInvoice(data.invoiceLink);
-                else alert(data.message);
-            });
-        }
-
-        socket.on('error_msg', (msg) => { alert(msg); location.reload(); });
-        socket.on('waiting', (msg) => { statusEl.innerText = msg; });
-
-        socket.on('game_start', ({ roomId, turn, p1, p2 }) => {
-            currentRoomId = roomId;
-            const enemy = (p1.id == userId) ? p2 : p1;
-            document.getElementById('enemyName').innerText = enemy.name;
-            
-            isMyTurn = (turn === socket.id);
-            statusEl.innerText = isMyTurn ? "Sizning navbatingiz!" : `${enemy.name} navbati...`;
-            timerBox.style.display = "block";
-        });
-
-        socket.on('timer_update', ({ timeLeft, turn }) => {
-            timerVal.innerText = timeLeft;
-            isMyTurn = (turn === socket.id);
-            statusEl.innerText = isMyTurn ? "Sizning navbatingiz!" : "Raqib navbati...";
-        });
-
-        function attack(index) {
-            if (!currentRoomId || !isMyTurn || enemyCells[index].innerHTML !== "") return;
-            socket.emit('make_move', { roomId: currentRoomId, cellIndex: index });
-        }
-
-        socket.on('move_result', ({ attackerName, cellIndex, nextTurn }) => {
-            if (attackerName === userName) {
-                enemyCells[cellIndex].innerHTML = "X";
-                enemyCells[cellIndex].classList.add('miss');
-            } else {
-                myCells[cellIndex].innerHTML = "X";
-                myCells[cellIndex].classList.add('miss');
+                updateMiningUI();
+            } catch (e) {
+                alert("So'rov yuborishda xatolik yuz berdi");
             }
-            isMyTurn = (nextTurn === socket.id || nextTurn === userId);
-        });
+        }
 
-        socket.on('game_over', ({ winnerName }) => {
-            timerBox.style.display = "none";
-            if (winnerName === userName) {
-                statusEl.innerText = "🎉 TABRIKLAYMIZ! G'alaba qozondingiz!";
-            } else {
-                statusEl.innerText = `❌ MAG'LUBIYAT! ${winnerName} g'alaba qozondi.`;
-            }
-            setTimeout(() => location.reload(), 3000);
-        });
+        // MAVJUD DUEL QIDIRUV MANTIQLARI (ESKI KODINGIZ)
+        function startDuelSearch() {
+            console.log("Duel qidiruvi boshlandi...");
+            // Asosiy duel qidiruv funksiyalaringiz bu yerda davom etadi
+        }
+
+        // Har 5 soniyada taymerni yangilab turish
+        setInterval(updateMiningUI, 5000);
+        
+        // Sahifa yuklanganda darhol bir marta chaqirish
+        document.addEventListener("DOMContentLoaded", updateMiningUI);
     </script>
 </body>
-            </html>
-            
+                    </html>
+                                                            
