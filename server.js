@@ -12,7 +12,7 @@ const io = new Server(server, { cors: { origin: "*" } });
 const PORT = process.env.PORT || 3000;
 const TOKEN = '8809424395:AAFRdNm6HG168dtZzRDfrmqqM4fm1fsq708';
 const APP_URL = 'https://qalampir-game.onrender.com';
-const ADMIN_ID = 123456789; // <-- BU YERGA O'ZINGIZNING TELEGRAM USER_ID NINGIZNI YOZING
+const ADMIN_ID = 867914430; // <-- BU YERGA O'ZINGIZNING TELEGRAM USER_ID NINGIZNI YOZING
 
 const bot = new TelegramBot(TOKEN, { polling: true });
 
