@@ -366,4 +366,18 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const https = require('https');
+
+// Server o'zini-o'zi uxlashdan saqlaydi
+setInterval(() => {
+    // APP_URL o'rniga Render'dagi rasmiy domain havolangizni qo'ying
+    const url = process.env.APP_URL || 'https://qalampir-bot.onrender.com';
+    
+    https.get(url, (res) => {
+        console.log(`Keep-alive ping yuborildi: Status ${res.statusCode}`);
+    }).on('error', (err) => {
+        console.error('Ping xatosi:', err.message);
+    });
+}, 10 * 60 * 1000); // Har 10 daqiqada bir marta
+
     
