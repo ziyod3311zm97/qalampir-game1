@@ -6,74 +6,79 @@
     <title>Qalampir PvP & Mining</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #0f0f0f;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #0d0d0d;
             color: #ffffff;
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin: 0;
-            padding: 15px 15px 80px 15px; /* Pastki menyu uchun joy */
+            padding: 10px 10px 75px 10px;
+            height: 100vh;
+            overflow: hidden;
             user-select: none;
-            touch-action: manipulation;
         }
-        h2 { margin-bottom: 5px; color: #ff4757; text-shadow: 0 0 10px rgba(255, 71, 87, 0.3); }
-        .balance-box { background: #1e1e1e; padding: 10px 20px; border-radius: 15px; border: 1px solid #333; margin-bottom: 15px; text-align: center; }
-        .balance-box span { color: #f1c40f; font-weight: bold; font-size: 1.2em; }
-        .status { font-size: 0.9em; color: #aaa; margin-bottom: 20px; min-height: 20px; text-align: center; }
-        .grid-label { font-size: 0.8em; color: #666; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px; }
-        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
-        .cell { width: 75px; height: 75px; background: #262626; border: 2px solid #3d3d3d; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; transition: all 0.2s ease; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        .cell:active { transform: scale(0.95); }
+        .header { display: flex; justify-content: space-between; width: 100%; max-width: 360px; align-items: center; margin-bottom: 8px; }
+        .lang-select { background: #222; color: #fff; border: 1px solid #444; border-radius: 8px; padding: 2px 6px; font-size: 0.8em; }
+        .balance-box { background: #1a1a1a; padding: 6px 16px; border-radius: 12px; border: 1px solid #333; text-align: center; width: 100%; max-width: 360px; margin-bottom: 8px; }
+        .balance-box span { color: #f1c40f; font-weight: bold; font-size: 1.1em; }
+        
+        .grid-label { font-size: 0.7em; color: #888; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+        .cell { width: 58px; height: 58px; background: #222; border: 2px solid #333; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; }
         .my-cell { border-color: #3498db; }
-        .my-cell.selected { background: #3498db; border-color: #fff; box-shadow: 0 0 15px rgba(52, 152, 219, 0.5); }
+        .my-cell.selected { background: #1e3799; border-color: #fff; }
         .enemy-cell { border-color: #ff4757; }
-        .miss { color: #ff4757; font-weight: bold; }
-        .hit { background: #2ed573 !important; border-color: #fff !important; }
-        hr { width: 90%; border: 0; border-top: 1px solid #333; margin: 25px 0; }
-        .btn { background: #2ed573; color: #fff; border: none; padding: 12px 35px; border-radius: 25px; font-size: 1.1em; font-weight: bold; cursor: pointer; display: none; box-shadow: 0 5px 15px rgba(46, 213, 115, 0.4); width: 100%; max-width: 280px; }
-        .btn:active { transform: translateY(2px); box-shadow: 0 2px 10px rgba(46, 213, 115, 0.4); }
 
-        /* TAB SECTIONS CONTAINER */
-        .tab-content { display: none; width: 100%; max-width: 350px; flex-direction: column; align-items: center; }
+        .btn { background: #2ed573; color: #fff; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; width: 100%; max-width: 260px; margin-top: 5px; }
+
+        /* MINING COIN DESIGN */
+        .coin-container { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 15px; }
+        .coin {
+            width: 130px; height: 130px; border-radius: 50%;
+            background: radial-gradient(circle, #2ed573 0%, #1e8449 100%);
+            border: 6px solid #27ae60;
+            box-shadow: 0 0 20px rgba(46, 213, 115, 0.4);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: transform 0.1s ease;
+        }
+        .coin:active { transform: scale(0.95); }
+
+        .tab-content { display: none; width: 100%; max-width: 360px; flex-direction: column; align-items: center; }
         .active-tab { display: flex; }
 
-        /* ZAMONAVIY NAVIGATION BAR */
         .navbar {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: #181818; border-top: 1px solid #2c2c2c;
-            display: flex; justify-content: space-around; padding: 10px 0; z-index: 1000;
+            position: fixed; bottom: 0; left: 0; right: 0; background: #141414; border-top: 1px solid #282828;
+            display: flex; justify-content: space-around; padding: 8px 0; z-index: 1000;
         }
-        .nav-item {
-            color: #888; font-size: 0.75em; display: flex; flex-direction: column; align-items: center; cursor: pointer;
-        }
+        .nav-item { color: #777; font-size: 0.7em; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
         .nav-item.active { color: #ff4757; font-weight: bold; }
-        .nav-icon { font-size: 1.4em; margin-bottom: 2px; }
 
-        /* MINING CARD STYLES */
-        .mining-card, .task-card {
-            background: #1e1e1e; border-radius: 16px; padding: 20px; border: 1px solid #333;
-            width: 100%; box-sizing: border-box; text-align: center; margin-bottom: 15px;
-        }
-        .mining-rate { color: #2ed573; font-size: 0.9em; margin-top: 5px; }
-        .mining-val { font-size: 2em; font-weight: bold; color: #f1c40f; margin: 15px 0; }
-        .action-btn { background: #ff4757; color: white; border: none; padding: 12px 20px; border-radius: 20px; font-weight: bold; width: 100%; cursor: pointer; }
+        .card { background: #181818; border-radius: 12px; padding: 14px; border: 1px solid #2a2a2a; width: 100%; text-align: center; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-    <h2>🌶️ Qalampir Top</h2>
-    <div class="balance-box">
-        Balans: <span id="balanceDisplay">...</span> ⭐️
-        <div style="font-size: 0.75em; color: #aaa; margin-top: 3px;">$QALAMPIR: <b id="minedDisplay" style="color:#2ed573;">0.00</b></div>
+    <div class="header">
+        <h3 style="color:#ff4757;">🌶️ Qalampir</h3>
+        <select class="lang-select" id="langSelect" onchange="changeLanguage(this.value)">
+            <option value="uz">UZB</option>
+            <option value="ru">RUS</option>
+            <option value="en">ENG</option>
+        </select>
     </div>
 
-    <!-- TAB 1: ESKI PvP O'YIN BO'LIMI (SEKTSiYA O'ZGARTIRILMADI) -->
-    <div id="gameTab" class="tab-content active-tab">
-        <div id="statusText" class="status">O'z qalampiringizni yashiring!</div>
+    <div class="balance-box">
+        <span id="txt-balance">Balans</span>: <span id="starsDisplay">0</span> ⭐
+        <div style="font-size: 0.75em; color: #aaa; margin-top: 2px;">$QALAMPIR: <b id="minedDisplay" style="color:#2ed573;">0.0000</b></div>
+    </div>
 
-        <div class="grid-label">Raqib maydoni</div>
+    <!-- TAB 1: JANG -->
+    <div id="gameTab" class="tab-content active-tab">
+        <div id="statusText" style="font-size: 0.85em; color: #aaa; margin-bottom: 8px;">O'z qalampiringizni yashiring!</div>
+        
+        <div class="grid-label" id="txt-enemy">Raqib maydoni</div>
         <div class="grid" id="enemyGrid">
             <div class="cell enemy-cell" onclick="handleAttack(0)"></div>
             <div class="cell enemy-cell" onclick="handleAttack(1)"></div>
@@ -83,9 +88,7 @@
             <div class="cell enemy-cell" onclick="handleAttack(5)"></div>
         </div>
 
-        <hr>
-
-        <div class="grid-label">Sizning maydoningiz</div>
+        <div class="grid-label" id="txt-my">Sizning maydoningiz</div>
         <div class="grid" id="myGrid">
             <div class="cell my-cell" onclick="handlePlacement(0)"></div>
             <div class="cell my-cell" onclick="handlePlacement(1)"></div>
@@ -95,210 +98,144 @@
             <div class="cell my-cell" onclick="handlePlacement(5)"></div>
         </div>
 
-        <button id="playBtn" class="btn" onclick="startBattle()">Boshlash (10 ⭐️)</button>
+        <button id="playBtn" class="btn" style="display:none;" onclick="playBotGame()">Boshlash (10 ⭐️)</button>
     </div>
 
-    <!-- TAB 2: PASSIV MINING BO'LIMI -->
+    <!-- TAB 2: MINING -->
     <div id="miningTab" class="tab-content">
-        <div class="mining-card">
+        <div class="card">
             <h3>⛏️ Passive Mining</h3>
-            <div class="mining-rate">Tezlik: +1.20 $QALAMPIR / soat</div>
-            <div class="mining-val" id="passiveCounter">0.0000</div>
-            <button class="action-btn" onclick="claimMining()">📥 Claim Token</button>
+            <div class="coin-container">
+                <div class="coin" onclick="clickCoin()">
+                    <!-- Yashil Tanga ichidagi Qizil Qalampir SVG -->
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 2C12 2 13 4 11 6C9 8 5 9 4 13C3 17 6 21 11 21C16 21 19 18 19 13C19 9 16 6 14 5C14 5 13 3 12 2Z" fill="#ff4757" stroke="#ffffff" stroke-width="1"/>
+                        <path d="M12 2C12 2 14 1 15 1" stroke="#2ed573" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div style="font-size: 1.4em; font-weight: bold; color: #f1c40f; margin-top: 10px;" id="passiveCounter">0.0000</div>
+                <button class="btn" onclick="claimMining()" style="margin-top:10px;">Claim Token</button>
+            </div>
         </div>
     </div>
 
-    <!-- TAB 3: VAZIFALAR (TASKS) -->
+    <!-- TAB 3: VAZIFALAR -->
     <div id="tasksTab" class="tab-content">
-        <div class="task-card">
-            <h4>📢 Kanalga a'zo bo'lish</h4>
-            <p style="font-size: 0.8em; color: #888;">+5.00 $QALAMPIR</p>
-            <button class="action-btn" style="background:#3498db;" onclick="window.open('https://t.me/telegram')">Bajarish</button>
-        </div>
-        <div class="task-card">
-            <h4>📅 Kunlik Kirish Bonusi</h4>
-            <p style="font-size: 0.8em; color: #888;">+2.00 $QALAMPIR</p>
-            <button class="action-btn" style="background:#2ed573;" onclick="claimDaily()">Olish</button>
+        <div class="card">
+            <h4>📢 Rasmiy Kanalimiz</h4>
+            <p style="font-size: 0.75em; color: #888; margin: 5px 0;">+5.00 $QALAMPIR</p>
+            <button class="btn" style="background:#3498db;" onclick="window.open('https://t.me/qalampir_channel', '_blank')">A'zo bo'lish</button>
         </div>
     </div>
 
-    <!-- TAB 4: REFERRAL (DO'STLAR) -->
+    <!-- TAB 4: DO'STLAR -->
     <div id="friendsTab" class="tab-content">
-        <div class="mining-card">
-            👥 <h3>Do'stlarni Taklif Qiling</h3>
-            <p style="font-size: 0.85em; color: #aaa;">Har bir taklif qilingan do'st uchun **Mining Tezligi +15%** ga oshadi!</p>
-            <button class="action-btn" style="background:#f1c40f; color:#000;" onclick="shareRefLink()">🔗 Taklif Havolasini Olish</button>
+        <div class="card">
+            <h3>👥 Do'stlarni Taklif Qiling</h3>
+            <p style="font-size: 0.8em; color: #aaa; margin: 8px 0;">Do'stingizni taklif qiling va mining tezligingizni +15% ga oshiring!</p>
+            <button class="btn" style="background:#f1c40f; color:#000;" onclick="shareRefLink()">🔗 Havolani Yuborish</button>
         </div>
     </div>
 
-    <!-- ZAMONAVIY NAVBAR -->
+    <!-- NAVBAR -->
     <div class="navbar">
-        <div class="nav-item active" onclick="switchTab('gameTab', this)">
-            <span class="nav-icon">⚔️</span>
-            <span>Jang</span>
-        </div>
-        <div class="nav-item" onclick="switchTab('miningTab', this)">
-            <span class="nav-icon">⛏️</span>
-            <span>Mining</span>
-        </div>
-        <div class="nav-item" onclick="switchTab('tasksTab', this)">
-            <span class="nav-icon">📋</span>
-            <span>Vazifalar</span>
-        </div>
-        <div class="nav-item" onclick="switchTab('friendsTab', this)">
-            <span class="nav-icon">👥</span>
-            <span>Do'stlar</span>
-        </div>
+        <div class="nav-item active" onclick="switchTab('gameTab', this)"><span>⚔️</span><span>Jang</span></div>
+        <div class="nav-item" onclick="switchTab('miningTab', this)"><span>⛏️</span><span>Mining</span></div>
+        <div class="nav-item" onclick="switchTab('tasksTab', this)"><span>📋</span><span>Vazifalar</span></div>
+        <div class="nav-item" onclick="switchTab('friendsTab', this)"><span>👥</span><span>Do'stlar</span></div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // SOZLAMALAR
-        const SERVER_IP = "83.229.84.120"; // Sizning IP manzilingiz
-        const API_URL = `http://${SERVER_IP}:5001/game_result`;
-        const userId = tg.initDataUnsafe?.user?.id || new URLSearchParams(window.location.search).get('user_id');
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user_id') || tg.initDataUnsafe?.user?.id;
 
-        let myPos = -1;
-        let enemyPos = -1;
-        let isGameRunning = false;
-        let currentBalance = 10;
+        let myPlacement = null;
 
-        // MINING MANTIQLARI
-        let minedTokens = parseFloat(localStorage.getItem('minedTokens')) || 0.00;
-        let lastClaimTime = parseInt(localStorage.getItem('lastClaimTime')) || Date.now();
-        const miningRatePerHour = 1.20;
+        const langData = {
+            uz: { balance: "Balans", enemy: "Raqib maydoni", my: "Sizning maydoningiz" },
+            ru: { balance: "Баланс", enemy: "Поле соперника", my: "Ваше поле" },
+            en: { balance: "Balance", enemy: "Enemy field", my: "Your field" }
+        };
 
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('balanceDisplay').innerText = currentBalance;
-            updateMiningProgress();
-            setInterval(updateMiningProgress, 3000); // Har 3 soniyada taymerni yangilaydi
-        });
-
-        function updateMiningProgress() {
-            const now = Date.now();
-            const hoursPassed = (now - lastClaimTime) / (1000 * 60 * 60);
-            const currentMined = hoursPassed * miningRatePerHour;
-            document.getElementById('passiveCounter').innerText = currentMined.toFixed(4);
-            document.getElementById('minedDisplay').innerText = minedTokens.toFixed(2);
+        function changeLanguage(lang) {
+            document.getElementById('txt-balance').innerText = langData[lang].balance;
+            document.getElementById('txt-enemy').innerText = langData[lang].enemy;
+            document.getElementById('txt-my').innerText = langData[lang].my;
         }
 
-        function claimMining() {
-            const now = Date.now();
-            const hoursPassed = (now - lastClaimTime) / (1000 * 60 * 60);
-            const earned = hoursPassed * miningRatePerHour;
-            if (earned < 0.01) {
-                alert("Hali yetarlicha token yig'ilmadi!");
-                return;
-            }
-            minedTokens += earned;
-            lastClaimTime = now;
-            localStorage.setItem('minedTokens', minedTokens);
-            localStorage.setItem('lastClaimTime', lastClaimTime);
-            updateMiningProgress();
-            tg.HapticFeedback.notificationOccurred('success');
-            alert(`+${earned.toFixed(2)} $QALAMPIR balansga qo'shildi!`);
+        async function fetchStatus() {
+            if(!userId) return;
+            try {
+                const res = await fetch(`/api/mining-status/${userId}`);
+                const data = await res.json();
+                if(data.success) {
+                    document.getElementById('starsDisplay').innerText = data.stars;
+                    document.getElementById('minedDisplay').innerText = data.totalPoints;
+                    document.getElementById('passiveCounter').innerText = data.currentMined;
+                }
+            } catch(e) { console.error(e); }
         }
 
-        // TAB SWITCHER
+        function handlePlacement(index) {
+            myPlacement = index;
+            document.querySelectorAll('.my-cell').forEach((c, i) => {
+                c.classList.toggle('selected', i === index);
+                c.innerText = i === index ? '🌶️' : '';
+            });
+            document.getElementById('playBtn').style.display = 'block';
+        }
+
+        async function playBotGame() {
+            if(myPlacement === null) return;
+            tg.HapticFeedback.impactOccurred('medium');
+
+            try {
+                const res = await fetch('/api/play-bot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+                const data = await res.json();
+                alert(data.message);
+                fetchStatus();
+            } catch(e) { console.error(e); }
+        }
+
+        async function claimMining() {
+            try {
+                const res = await fetch('/api/claim-mining', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+                const data = await res.json();
+                alert(data.message);
+                fetchStatus();
+            } catch(e) { console.error(e); }
+        }
+
+        function clickCoin() {
+            tg.HapticFeedback.impactOccurred('light');
+        }
+
         function switchTab(tabId, el) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active-tab'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById(tabId).classList.add('active-tab');
             el.classList.add('active');
-            tg.HapticFeedback.selectionChanged();
         }
 
         function shareRefLink() {
             const refUrl = `https://t.me/qalampir_bot?start=${userId}`;
-            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(refUrl)}&text=Qalampir%20o'yinida%20men bilan%20bellashing!`);
+            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(refUrl)}&text=Men%20bilan%20Qalampir%20o'yinida%20bellashing!`);
         }
 
-        function claimDaily() {
-            minedTokens += 2.0;
-            localStorage.setItem('minedTokens', minedTokens);
-            updateMiningProgress();
-            alert("+2.00 $QALAMPIR berildi!");
-        }
-
-        // ESKI O'YIN MANTIQLARI (SAQLAB QOLINDI)
-        async function syncWithServer(resultType) {
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId, result: resultType })
-                });
-                const data = await res.json();
-                if (data.status === 'success') {
-                    currentBalance = data.new_balance;
-                    document.getElementById('balanceDisplay').innerText = currentBalance;
-                }
-            } catch (err) {
-                console.error("Aloqa xatosi:", err);
-            }
-        }
-
-        function handlePlacement(index) {
-            if (isGameRunning) return;
-            const cells = document.querySelectorAll('.my-cell');
-            cells.forEach(c => { c.innerHTML = ""; c.classList.remove('selected'); });
-            myPos = index;
-            cells[index].innerHTML = "🌶️";
-            cells[index].classList.add('selected');
-            document.getElementById('statusText').innerText = "Tayyor! Jangni boshlang.";
-            document.getElementById('playBtn').style.display = "block";
-        }
-
-        function startBattle() {
-            isGameRunning = true;
-            document.getElementById('playBtn').style.display = "none";
-            document.getElementById('statusText').innerText = "Raqib maydonidan qalampirni izlang!";
-            enemyPos = Math.floor(Math.random() * 6);
-        }
-
-        async function handleAttack(index) {
-            if (!isGameRunning) return;
-            const cells = document.querySelectorAll('.enemy-cell');
-            if (cells[index].innerHTML !== "") return;
-
-            if (index === enemyPos) {
-                cells[index].innerHTML = "🌶️";
-                cells[index].classList.add('hit');
-                document.getElementById('statusText').innerText = "G'alaba! +18 ⭐";
-                isGameRunning = false;
-                tg.HapticFeedback.notificationOccurred('success');
-                await syncWithServer('win');
-                setTimeout(() => location.reload(), 3000);
-            } else {
-                cells[index].innerHTML = "X";
-                cells[index].classList.add('miss');
-                document.getElementById('statusText').innerText = "Siz adashtingiz! Navbat raqibda...";
-                setTimeout(enemyMove, 1000);
-            }
-        }
-
-        async function enemyMove() {
-            if (!isGameRunning) return;
-            const cells = document.querySelectorAll('.my-cell');
-            let move;
-            do { move = Math.floor(Math.random() * 6); } while (cells[move].innerHTML === "X");
-
-            if (move === myPos) {
-                cells[move].style.background = "#ff4757";
-                document.getElementById('statusText').innerText = "Raqib topdi! Mag'lubiyat.";
-                isGameRunning = false;
-                tg.HapticFeedback.notificationOccurred('error');
-                await syncWithServer('loss');
-                setTimeout(() => location.reload(), 3000);
-            } else {
-                cells[move].innerHTML = "X";
-                cells[move].classList.add('miss');
-                document.getElementById('statusText').innerText = "Sizning navbatingiz!";
-            }
-        }
+        fetchStatus();
+        setInterval(fetchStatus, 10000);
     </script>
 </body>
     </html>
-    
+                                                                       
