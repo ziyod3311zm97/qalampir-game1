@@ -12,10 +12,13 @@ const PORT = process.env.PORT || 3000;
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const APP_URL = process.env.APP_URL || 'https://qalampir-top.onrender.com';
 
+// 🔒 ADMIN TELEGRAM ID RAQAMI
+const ADMIN_TELEGRAM_ID = 867914430;
+
 // Telegram Bot obyektini yaratish
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
-// Supabase PostgreSQL bilan ulanish
+// Supabase PostgreSQL ulanishi
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
@@ -45,7 +48,7 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
             if (refId && refId !== userId) {
                 await pool.query(
                     `UPDATE users SET 
-                        stars = stars + 5, 
+                        stars = COALESCE(stars, 0) + 5, 
                         mining_rate = COALESCE(mining_rate, 1.0) * 1.15, 
                         referrals_count = COALESCE(referrals_count, 0) + 1 
                      WHERE id = $1`, 
@@ -69,10 +72,10 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
 });
 
 // ==========================================
-// 2. MINING & VIRAL API ENDPOINTS
+// 2. MINING & GAME API ENDPOINTS
 // ==========================================
 
-// API: Foydalanuvchining joriy mining holatini olish
+// API: Foydalanuvchining joriy mining va balans holatini olish
 app.get('/api/mining-status/:id', async (req, res) => {
     const userId = req.params.id;
     try {
@@ -83,7 +86,6 @@ app.get('/api/mining-status/:id', async (req, res) => {
         const now = new Date();
         const lastClaim = new Date(user.last_claim || now);
         
-        // O'tgan vaqt (soatlarda), maksimal 8 soat yig'iladi
         let hoursPassed = (now - lastClaim) / (1000 * 60 * 60);
         if (hoursPassed > 8) hoursPassed = 8;
 
@@ -91,8 +93,9 @@ app.get('/api/mining-status/:id', async (req, res) => {
 
         res.json({
             success: true,
+            stars: user.stars || 0,
             totalPoints: user.mining_points || 0,
-            currentMined: currentMined.toFixed(2),
+            currentMined: currentMined.toFixed(4),
             miningRate: user.mining_rate || 1.0,
             canClaim: hoursPassed >= 0.01
         });
@@ -101,7 +104,7 @@ app.get('/api/mining-status/:id', async (req, res) => {
     }
 });
 
-// API: Yig'ilgan tokenlarni Claim qilish (Balansga o'tkazish)
+// API: Yig'ilgan tokenlarni Claim qilish
 app.post('/api/claim-mining', async (req, res) => {
     const { userId } = req.body;
     try {
@@ -135,7 +138,32 @@ app.post('/api/claim-mining', async (req, res) => {
     }
 });
 
-// API: Story ulashganlik uchun bonus berish
+// API: Bot bilan o'ynash (60/40 nisbat: 60% Bot yutadi, 40% O'yinchi)
+app.post('/api/play-bot', async (req, res) => {
+    const { userId } = req.body;
+    
+    // 60% ehtimollik bilan bot yutadi
+    const botWins = Math.random() < 0.60;
+
+    try {
+        const userRes = await pool.query(`SELECT stars FROM users WHERE id = $1`, [userId]);
+        if (userRes.rows.length === 0 || (userRes.rows[0].stars || 0) < 10) {
+            return res.json({ success: false, message: "Balans yetarli emas (kamida 10 ⭐ kerak)!" });
+        }
+
+        if (botWins) {
+            await pool.query(`UPDATE users SET stars = stars - 10 WHERE id = $1`, [userId]);
+            res.json({ success: true, result: "loss", message: "Bot g'olib bo'ldi!" });
+        } else {
+            await pool.query(`UPDATE users SET stars = stars + 18, mining_points = COALESCE(mining_points, 0) + 50 WHERE id = $1`, [userId]);
+            res.json({ success: true, result: "win", message: "Siz g'olib bo'ldingiz! 🎉 +18 ⭐ va +50 Ball" });
+        }
+    } catch (e) {
+        res.json({ success: false, message: e.message });
+    }
+});
+
+// API: Story ulashganlik uchun bonus
 app.post('/api/story-reward', async (req, res) => {
     const { userId } = req.body;
     try {
@@ -146,33 +174,81 @@ app.post('/api/story-reward', async (req, res) => {
     }
 });
 
-// API: Duel g'olibiga active mining balli qo'shish (O'yin mantig'i oxirida ishlatiladi)
-async function rewardDuelWinner(winnerId) {
-    try {
-        await pool.query(`UPDATE users SET mining_points = COALESCE(mining_points, 0) + 50 WHERE id = $1`, [winnerId]);
-    } catch (e) {
-        console.error("Duel reward xatosi:", e.message);
+// ==========================================
+// 3. ADMIN PANEL INTERFEYSI (ID XAVFSIZLIGI)
+// ==========================================
+
+app.get('/admin', async (req, res) => {
+    const userId = parseInt(req.query.user_id);
+
+    // Xavfsizlik tekshiruvi: Faqat 867914430 ID'siga ruxsat beradi
+    if (userId !== ADMIN_TELEGRAM_ID) {
+        return res.status(403).send("<h1 style='color:red; text-align:center; margin-top:50px;'>⛔️ Kirish taqiqlangan! Siz admin emassiz.</h1>");
     }
-}
+
+    try {
+        const usersRes = await pool.query(`SELECT id, username, stars, mining_points, referrals_count FROM users ORDER BY id DESC`);
+        const users = usersRes.rows;
+
+        let rowsHtml = users.map(u => `
+            <tr>
+                <td style="padding:10px; border:1px solid #333;">${u.id}</td>
+                <td style="padding:10px; border:1px solid #333;">@${u.username || 'Noma\'lum'}</td>
+                <td style="padding:10px; border:1px solid #333; color:#f1c40f;"><b>${u.stars || 0} ⭐</b></td>
+                <td style="padding:10px; border:1px solid #333; color:#2ed573;"><b>${(u.mining_points || 0).toFixed(2)}</b></td>
+                <td style="padding:10px; border:1px solid #333;">${u.referrals_count || 0} ta</td>
+            </tr>
+        `).join('');
+
+        res.send(`
+            <!DOCTYPE html>
+            <html lang="uz">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Qalampir Top - Admin Panel</title>
+            </head>
+            <body style="background:#121212; color:#fff; font-family:sans-serif; padding:20px;">
+                <h2>📊 Admin Panel - Qalampir Top</h2>
+                <p style="color:#aaa;">Jami ro'yxatdan o'tgan o'yinchilar: <b style="color:#fff;">${users.length} ta</b></p>
+                <hr style="border-color:#333; margin:15px 0;">
+                <div style="overflow-x:auto;">
+                    <table style="width:100%; border-collapse:collapse; background:#1e1e1e; text-align:left;">
+                        <tr style="background:#2c2c2c; color:#ddd;">
+                            <th style="padding:10px; border:1px solid #333;">Telegram ID</th>
+                            <th style="padding:10px; border:1px solid #333;">Nikneym</th>
+                            <th style="padding:10px; border:1px solid #333;">Yulduzlar</th>
+                            <th style="padding:10px; border:1px solid #333;">$QALAMPIR</th>
+                            <th style="padding:10px; border:1px solid #333;">Referallar</th>
+                        </tr>
+                        ${rowsHtml}
+                    </table>
+                </div>
+            </body>
+            </html>
+        `);
+    } catch (e) {
+        res.status(500).send("Admin panel xatosi: " + e.message);
+    }
+});
 
 // ==========================================
-// 3. SERVER & KEEP-ALIVE MECHANISM
+// 4. SERVER & KEEP-ALIVE MECHANISM
 // ==========================================
 
 app.listen(PORT, () => {
     console.log(`Server ${PORT}-portda muvaffaqiyatli ishga tushdi`);
 });
 
-// Render serverini 24/7 uyg'oq ushlash uchun o'z-o'ziga ping yuborish
+// Render serverini 24/7 uyg'oq ushlash uchun har 10 daqiqada ping yuborish
 setInterval(() => {
     https.get(APP_URL, (res) => {
         console.log(`Keep-alive ping yuborildi: Status ${res.statusCode}`);
     }).on('error', (err) => {
         console.error('Ping xatosi:', err.message);
     });
-}, 10 * 60 * 1000); // Har 10 daqiqada bir marta
+}, 10 * 60 * 1000);
 
-// Server kutilmagan xatolik sababli to'xtab (crash) qolmasligi uchun tutqichlar
 process.on('uncaughtException', (err) => {
     console.error('Kutilmagan xatolik (Uncaught Exception):', err);
 });
