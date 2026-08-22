@@ -25,54 +25,67 @@ const pool = new Pool({
 
 const BOT_NAMES = ["Sardor_99", "Jasur_Bek", "Dilnoza_A", "Madina_K", "Shohruh_Uz", "Farrux_88", "Aziza_M", "Bekzod_T"];
 
-// Baza initsializatsiyasi
 async function initDB() {
     try {
         await pool.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id BIGINT PRIMARY KEY,
                 username VARCHAR(255),
+                referred_by BIGINT,
+                referrals_count INT DEFAULT 0,
                 wins INT DEFAULT 0,
                 losses INT DEFAULT 0
             );
         `);
-        console.log("PostgreSQL bazasi ulandi va tayyor!");
+        console.log("PostgreSQL bazasi tayyor!");
     } catch (err) {
         console.error("Baza xatosi:", err.message);
     }
 }
 initDB();
 
-// Telegram Bot hodisalari
-bot.onText(/\/start/, async (msg) => {
+// 1. TELEGRAM BOT HANDLERS & REFERRAL
+bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
     const chatId = msg.chat.id;
     const userId = msg.from.id;
     const username = msg.from.username || msg.from.first_name;
+    const referrerId = match[1] ? parseInt(match[1]) : null;
 
     try {
         const userRes = await pool.query(`SELECT * FROM users WHERE id = $1`, [userId]);
         if (userRes.rows.length === 0) {
-            await pool.query(`INSERT INTO users (id, username) VALUES ($1, $2)`, [userId, username]);
+            await pool.query(
+                `INSERT INTO users (id, username, referred_by) VALUES ($1, $2, $3)`,
+                [userId, username, referrerId !== userId ? referrerId : null]
+            );
+            if (referrerId && referrerId !== userId) {
+                await pool.query(`UPDATE users SET referrals_count = referrals_count + 1 WHERE id = $1`, [referrerId]);
+            }
         }
-    } catch (e) { console.error(e.message); }
+    } catch (e) {
+        console.error("User save error:", e.message);
+    }
+
+    const shareUrl = `https://t.me/share/url?url=https://t.me/qalampir_top_bot?start=${userId}&text=${encodeURIComponent("🌶️ Qalampir PvP o'yinida meni mag'lub eta olasanmi? Hoziroq qo'shil!")}`;
 
     bot.sendMessage(chatId, `Salom ${msg.from.first_name}! 🌶️ Qalampir PvP o'yiniga xush kelibsiz!`, {
         reply_markup: {
-            inline_keyboard: [[
-                { text: "🌶️ O'ynash", web_app: { url: `${APP_URL}?user_id=${userId}&name=${encodeURIComponent(username)}` } }
-            ]]
+            inline_keyboard: [
+                [{ text: "🌶️ O'yinni Boshlash", web_app: { url: `${APP_URL}?user_id=${userId}&name=${encodeURIComponent(username)}` } }],
+                [{ text: "🚀 Do'stlarni taklif qilish", url: shareUrl }]
+            ]
         }
     });
 });
 
-// Bot Raqib Generatsiyasi (50/50 nisbat uchun)
+// API: Bot Raqib
 app.get('/api/get-bot-opponent', (req, res) => {
     const randomName = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
     const botPos = Math.floor(Math.random() * 9);
     res.json({ success: true, botName: randomName, botPos: botPos });
 });
 
-// Natijani Saqlash
+// API: Natijani Saqlash
 app.post('/api/save-result', async (req, res) => {
     const { userId, result } = req.body;
     if (!userId) return res.json({ success: false });
@@ -86,7 +99,7 @@ app.post('/api/save-result', async (req, res) => {
     } catch (e) { res.json({ success: false, message: e.message }); }
 });
 
-// Matchmaking (Socket.IO)
+// 2. SOCKET.IO REAL-TIME MATCHMAKING
 let waitingPlayer = null;
 
 io.on('connection', (socket) => {
@@ -120,37 +133,71 @@ io.on('connection', (socket) => {
     });
 });
 
-// Admin Panel (ID orqali ximoyalangan)
+// 3. ADMIN PANEL & OMMAVIY XABAR YUBORISH
 app.get('/admin', async (req, res) => {
     if (parseInt(req.query.user_id) !== ADMIN_TELEGRAM_ID) {
         return res.status(403).send("⛔️ Kirish taqiqlangan!");
     }
-    const users = (await pool.query(`SELECT * FROM users ORDER BY wins DESC`)).rows;
-    let rows = users.map(u => `
-        <tr>
-            <td style="padding:8px; border:1px solid #333;">${u.id}</td>
-            <td style="padding:8px; border:1px solid #333;">@${u.username || 'Anonim'}</td>
-            <td style="padding:8px; border:1px solid #333; color:#2ed573;"><b>${u.wins}</b></td>
-            <td style="padding:8px; border:1px solid #333; color:#ff4757;"><b>${u.losses}</b></td>
-        </tr>
-    `).join('');
+    try {
+        const users = (await pool.query(`SELECT * FROM users ORDER BY wins DESC`)).rows;
+        let rows = users.map(u => `
+            <tr>
+                <td style="padding:8px; border:1px solid #333;">${u.id}</td>
+                <td style="padding:8px; border:1px solid #333;">@${u.username || 'Anonim'}</td>
+                <td style="padding:8px; border:1px solid #333; color:#f1c40f;">${u.referrals_count || 0}</td>
+                <td style="padding:8px; border:1px solid #333; color:#2ed573;"><b>${u.wins}</b></td>
+                <td style="padding:8px; border:1px solid #333; color:#ff4757;"><b>${u.losses}</b></td>
+            </tr>
+        `).join('');
 
-    res.send(`
-        <body style="background:#121212; color:#fff; font-family:sans-serif; padding:20px;">
-            <h2>📊 Admin Panel - Qalampir Top</h2>
-            <p>Jami foydalanuvchilar: <b>${users.length}</b></p>
-            <table style="width:100%; border-collapse:collapse; background:#1e1e1e;">
-                <tr style="background:#2c2c2c;">
-                    <th style="padding:8px; border:1px solid #333;">ID</th>
-                    <th style="padding:8px; border:1px solid #333;">O'yinchi</th>
-                    <th style="padding:8px; border:1px solid #333;">G'alaba</th>
-                    <th style="padding:8px; border:1px solid #333;">Mag'lubiyat</th>
-                </tr>
-                ${rows}
-            </table>
-        </body>
-    `);
+        res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head><title>Admin Panel</title></head>
+            <body style="background:#121212; color:#fff; font-family:sans-serif; padding:20px;">
+                <h2>📊 Admin Panel - Qalampir Top</h2>
+                <p>Jami foydalanuvchilar: <b>${users.length}</b></p>
+                
+                <div style="background:#1e1e1e; padding:15px; border-radius:8px; margin-bottom:20px;">
+                    <h3>📢 Ommaviy Xabar Yuborish</h3>
+                    <form action="/admin/broadcast" method="POST">
+                        <input type="hidden" name="admin_id" value="${ADMIN_TELEGRAM_ID}">
+                        <textarea name="message" style="width:100%; height:80px; background:#222; color:#fff; border:1px solid #444; border-radius:5px; padding:8px;" placeholder="Xabarni kiriting..."></textarea><br><br>
+                        <button type="submit" style="background:#2ed573; color:#fff; border:none; padding:10px 20px; border-radius:5px; cursor:pointer;">Yuborish</button>
+                    </form>
+                </div>
+
+                <table style="width:100%; border-collapse:collapse; background:#1e1e1e;">
+                    <tr style="background:#2c2c2c;">
+                        <th style="padding:8px; border:1px solid #333;">ID</th>
+                        <th style="padding:8px; border:1px solid #333;">O'yinchi</th>
+                        <th style="padding:8px; border:1px solid #333;">Referallar</th>
+                        <th style="padding:8px; border:1px solid #333;">G'alaba</th>
+                        <th style="padding:8px; border:1px solid #333;">Mag'lubiyat</th>
+                    </tr>
+                    ${rows}
+                </table>
+            </body>
+            </html>
+        `);
+    } catch (e) { res.status(500).send("Xato: " + e.message); }
+});
+
+app.post('/admin/broadcast', express.urlencoded({ extended: true }), async (req, res) => {
+    const { admin_id, message } = req.body;
+    if (parseInt(admin_id) !== ADMIN_TELEGRAM_ID) return res.status(403).send("Taqiqlangan");
+
+    const users = (await pool.query(`SELECT id FROM users`)).rows;
+    let sentCount = 0;
+
+    for (let u of users) {
+        try {
+            await bot.sendMessage(u.id, message);
+            sentCount++;
+        } catch (e) { console.error(`Xabar yuborilmadi: ${u.id}`); }
+    }
+
+    res.send(`<h3>✅ Xabar ${sentCount} ta foydalanuvchiga yuborildi!</h3><a href="/admin?user_id=${ADMIN_TELEGRAM_ID}">Orqaga</a>`);
 });
 
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-                              
