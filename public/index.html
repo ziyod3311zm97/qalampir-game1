@@ -2,240 +2,146 @@
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Qalampir PvP</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Qalampir Topish</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0f0f12; color: #ffffff;
-            display: flex; flex-direction: column; align-items: center; justify-content: space-between;
-            min-height: 100vh; padding: 12px; user-select: none; touch-action: manipulation;
-        }
-        .container { width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; }
-        .header { text-align: center; margin-bottom: 8px; }
-        .match-info {
-            display: flex; justify-content: space-between; align-items: center;
-            width: 100%; background: #1a1a24; padding: 10px 15px; border-radius: 12px; border: 1px solid #2a2a3a; margin-bottom: 8px;
-        }
-        .player { font-weight: bold; font-size: 0.9em; color: #3498db; }
-        .enemy { font-weight: bold; font-size: 0.9em; color: #ff4757; }
-        .status { font-size: 0.85em; color: #aaa; margin-bottom: 10px; min-height: 20px; text-align: center; }
-        
-        .grid-label { font-size: 0.7em; color: #666; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
-        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; margin-bottom: 10px; }
-        .cell {
-            aspect-ratio: 1; background: #1a1a24; border: 2px solid #2a2a3a;
-            border-radius: 12px; display: flex; align-items: center; justify-content: center;
-            font-size: calc(18px + 2vw); cursor: pointer; transition: 0.15s;
-        }
-        .cell:active { transform: scale(0.95); }
-        .my-cell.selected { background: #2980b9; border-color: #fff; }
-        .hit { background: #2ed573 !important; }
-        .miss { color: #ff4757; font-weight: bold; }
-
-        .btn { background: #2ed573; color: #fff; border: none; padding: 12px 25px; border-radius: 20px; font-size: 1em; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 8px; }
-        .share-btn { background: #0088cc; display: none; }
-        
-        .emoji-bar {
-            display: flex; gap: 6px; overflow-x: auto; width: 100%; padding: 6px 0;
-        }
-        .emoji-btn { font-size: 20px; background: #1a1a24; border: 1px solid #333; padding: 6px 10px; border-radius: 8px; cursor: pointer; }
-        
-        .chat-bubble {
-            position: fixed; top: 35%; background: rgba(0,0,0,0.85); color: #fff;
-            padding: 10px 20px; border-radius: 20px; font-size: 32px; display: none; z-index: 99;
-        }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #121212; color: #E0E0E0; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 15px; overflow: hidden; }
+        h2 { margin: 10px 0; font-size: 22px; color: #ffffff; }
+        .balance { font-size: 16px; color: #FFD700; margin-bottom: 5px; }
+        .status { font-size: 14px; color: #aaa; margin-bottom: 15px; height: 20px; text-align: center; }
+        .label { font-size: 13px; color: #888; margin: 8px 0; text-transform: uppercase; letter-spacing: 1px; }
+        .grid-container { display: grid; grid-template-columns: repeat(3, 65px); gap: 10px; }
+        .cell { width: 65px; height: 65px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; transition: 0.2s; box-shadow: 0 3px 6px rgba(0,0,0,0.4); }
+        .my-cell { background-color: #3498db; border: 2px solid #2980b9; }
+        .enemy-cell { background-color: #2c3e50; border: 2px solid #34495e; }
+        .cell.selected { border-color: #ffffff; box-shadow: 0 0 15px #3498db; }
+        .cell:active { transform: scale(0.92); }
+        .miss { color: #e74c3c; font-weight: bold; font-size: 30px; }
+        hr { width: 80%; border: 0; border-top: 1px solid #333; margin: 20px 0; }
+        .start-btn { background-color: #2ecc71; color: white; border: none; padding: 10px 25px; font-size: 16px; border-radius: 20px; margin-top: 20px; display: none; font-weight: bold; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3); }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="header">
-            <h2 style="color:#ff4757;">🌶️ Qalampir PvP</h2>
-        </div>
+    <h2>🌶️ Qalampir Top</h2>
+    <div class="balance">Balans: <span id="starBalance">10</span> ⭐️</div>
+    <div id="status" class="status">O'z qalampiringizni yashiring!</div>
 
-        <div class="match-info">
-            <div class="player" id="myName">Siz</div>
-            <div style="font-size:0.8em; color:#888;">VS</div>
-            <div class="enemy" id="enemyName">Raqib kutilmoqda...</div>
-        </div>
-
-        <div id="statusText" class="status">O'z qalampiringizni yashiring!</div>
-
-        <div class="grid-label">Raqib maydoni</div>
-        <div class="grid" id="enemyGrid">
-            <div class="cell enemy-cell" onclick="handleAttack(0)"></div>
-            <div class="cell enemy-cell" onclick="handleAttack(1)"></div>
-            <div class="cell enemy-cell" onclick="handleAttack(2)"></div>
-            <div class="cell enemy-cell" onclick="handleAttack(3)"></div>
-            <div class="cell enemy-cell" onclick="handleAttack(4)"></div>
-            <div class="cell enemy-cell" onclick="handleAttack(5)"></div>
-            <div class="cell enemy-cell" onclick="handleAttack(6)"></div>
-            <div class="cell enemy-cell" onclick="handleAttack(7)"></div>
-            <div class="cell enemy-cell" onclick="handleAttack(8)"></div>
-        </div>
-
-        <div class="grid-label">Sizning maydoningiz</div>
-        <div class="grid" id="myGrid">
-            <div class="cell my-cell" onclick="handlePlacement(0)"></div>
-            <div class="cell my-cell" onclick="handlePlacement(1)"></div>
-            <div class="cell my-cell" onclick="handlePlacement(2)"></div>
-            <div class="cell my-cell" onclick="handlePlacement(3)"></div>
-            <div class="cell my-cell" onclick="handlePlacement(4)"></div>
-            <div class="cell my-cell" onclick="handlePlacement(5)"></div>
-            <div class="cell my-cell" onclick="handlePlacement(6)"></div>
-            <div class="cell my-cell" onclick="handlePlacement(7)"></div>
-            <div class="cell my-cell" onclick="handlePlacement(8)"></div>
-        </div>
-
-        <button id="playBtn" class="btn" style="display:none;" onclick="startSearch()">Raqib Izlash 🔍</button>
-        <button id="shareBtn" class="btn share-btn" onclick="shareGame()">🚀 Do'stlarga ulashish</button>
-
-        <div class="emoji-bar">
-            <span class="emoji-btn" onclick="sendEmoji('😎')">😎</span>
-            <span class="emoji-btn" onclick="sendEmoji('🔥')">🔥</span>
-            <span class="emoji-btn" onclick="sendEmoji('😂')">😂</span>
-            <span class="emoji-btn" onclick="sendEmoji('🌶️')">🌶️</span>
-            <span class="emoji-btn" onclick="sendEmoji('👍')">👍</span>
-            <span class="emoji-btn" onclick="sendEmoji('👏')">👏</span>
-            <span class="emoji-btn" onclick="sendEmoji('😡')">😡</span>
-            <span class="emoji-btn" onclick="sendEmoji('🙈')">🙈</span>
-            <span class="emoji-btn" onclick="sendEmoji('😱')">😱</span>
-            <span class="emoji-btn" onclick="sendEmoji('🎉')">🎉</span>
-        </div>
+    <div class="label">Raqib maydoni</div>
+    <div class="grid-container" id="enemyGrid">
+        <div class="cell enemy-cell" onclick="attack(0)"></div>
+        <div class="cell enemy-cell" onclick="attack(1)"></div>
+        <div class="cell enemy-cell" onclick="attack(2)"></div>
+        <div class="cell enemy-cell" onclick="attack(3)"></div>
+        <div class="cell enemy-cell" onclick="attack(4)"></div>
+        <div class="cell enemy-cell" onclick="attack(5)"></div>
     </div>
 
-    <div class="chat-bubble" id="chatBubble"></div>
+    <hr>
+
+    <div class="label">Sizning maydoningiz</div>
+    <div class="grid-container" id="myGrid">
+        <div class="cell my-cell" onclick="selectMyPepperSpot(0)"></div>
+        <div class="cell my-cell" onclick="selectMyPepperSpot(1)"></div>
+        <div class="cell my-cell" onclick="selectMyPepperSpot(2)"></div>
+        <div class="cell my-cell" onclick="selectMyPepperSpot(3)"></div>
+        <div class="cell my-cell" onclick="selectMyPepperSpot(4)"></div>
+        <div class="cell my-cell" onclick="selectMyPepperSpot(5)"></div>
+    </div>
+
+    <button id="startBtn" class="start-btn" onclick="startGame()">Boshlash (10 ⭐️)</button>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        const socket = io();
 
         const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('user_id') || tg.initDataUnsafe?.user?.id;
-        const myUsername = urlParams.get('name') || "Siz";
+        const userId = urlParams.get('user_id') || (tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "guest");
 
-        let myPos = -1, enemyPos = -1;
-        let isGameRunning = false;
-        let isMyTurn = true;
-        let isProcessing = false; // Bir nechta katak bosilishining oldini olish
-        let currentRoomId = null;
-        let searchTimer = null;
+        let myPepperPos = -1;
+        let enemyPepperPos = -1;
+        let gameActive = false;
+        let stars = 10; 
+        const bet = 10;
 
-        document.getElementById('myName').innerText = myUsername;
+        const myCells = document.querySelectorAll('.my-cell');
+        const enemyCells = document.querySelectorAll('.enemy-cell');
+        const statusEl = document.getElementById('status');
+        const startBtn = document.getElementById('startBtn');
 
-        function handlePlacement(index) {
-            if (isGameRunning) return;
-            document.querySelectorAll('.my-cell').forEach((c, i) => {
-                c.innerHTML = i === index ? '🌶️' : '';
-                c.classList.toggle('selected', i === index);
-            });
-            myPos = index;
-            document.getElementById('statusText').innerText = "Tayyor! Izlashni boshlang.";
-            document.getElementById('playBtn').style.display = 'block';
-        }
-
-        function startSearch() {
-            document.getElementById('playBtn').style.display = 'none';
-            document.getElementById('statusText').innerText = "Raqib izlanmoqda... (20s)";
-
-            socket.emit('find_match', { name: myUsername });
-
-            searchTimer = setTimeout(async () => {
-                if (!isGameRunning) {
-                    const res = await fetch('/api/get-bot-opponent');
-                    const data = await res.json();
-                    document.getElementById('enemyName').innerText = data.botName;
-                    enemyPos = data.botPos;
-                    isGameRunning = true;
-                    isMyTurn = true;
-                    document.getElementById('statusText').innerText = "Raqib topildi! Qalampirni izlang.";
-                }
-            }, 20000);
-        }
-
-        socket.on('match_found', (data) => {
-            clearTimeout(searchTimer);
-            currentRoomId = data.roomId;
-            const enemy = data.players.find(p => p.id !== socket.id);
-            document.getElementById('enemyName').innerText = enemy ? enemy.name : "Raqib";
-            enemyPos = Math.floor(Math.random() * 9);
-            isGameRunning = true;
-            isMyTurn = true;
-            document.getElementById('statusText').innerText = "Haqiqiy raqib topildi! Navbat sizda.";
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('starBalance').innerText = stars;
         });
 
-        async function handleAttack(index) {
-            // Bir vaqtning o'zida bir nechta katak bosilishini va navbatsiz harakatni taqiqlash
-            if (!isGameRunning || !isMyTurn || isProcessing) return;
-            
-            const cells = document.querySelectorAll('.enemy-cell');
-            if (cells[index].innerHTML !== "") return;
+        async function sendResult(res) {
+            try {
+                const response = await fetch('/game_result', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId, result: res })
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    stars = data.new_balance;
+                    document.getElementById('starBalance').innerText = stars;
+                }
+            } catch (e) { console.log("Xato:", e); }
+        }
 
-            isProcessing = true; // Bloklash
+        function selectMyPepperSpot(index) {
+            if (gameActive) return;
+            myCells.forEach(c => { c.innerHTML = ""; c.classList.remove('selected'); });
+            myPepperPos = index;
+            myCells[index].innerHTML = "🌶️";
+            myCells[index].classList.add('selected');
+            statusEl.innerText = "Tayyor! O'yinni boshlang.";
+            startBtn.style.display = "block";
+        }
 
-            if (index === enemyPos) {
-                cells[index].innerHTML = "🌶️";
-                cells[index].classList.add('hit');
-                document.getElementById('statusText').innerText = "G'alaba! 🎉";
-                isGameRunning = false;
-                document.getElementById('shareBtn').style.display = 'block';
-                await fetch('/api/save-result', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, result: 'win' }) });
-                setTimeout(() => location.reload(), 4000);
+        function startGame() {
+            if (stars < bet) return tg.showAlert("Yulduzchalar kam!");
+            gameActive = true;
+            startBtn.style.display = "none";
+            statusEl.innerText = "Raqib qalampirini toping!";
+            enemyPepperPos = Math.floor(Math.random() * 6);
+            enemyCells.forEach(c => { c.innerHTML = ""; c.style.backgroundColor = "#2c3e50"; });
+        }
+
+        async function attack(index) {
+            if (!gameActive || enemyCells[index].innerHTML !== "") return;
+            if (index === enemyPepperPos) {
+                enemyCells[index].innerHTML = "🌶️";
+                enemyCells[index].style.backgroundColor = "#2ecc71";
+                statusEl.innerText = "Yutdingiz! +18 ⭐️";
+                gameActive = false;
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                await sendResult('win');
+                setTimeout(() => { location.reload(); }, 2000);
             } else {
-                cells[index].innerHTML = "X";
-                cells[index].classList.add('miss');
-                document.getElementById('statusText').innerText = "Adashtingiz! Navbat raqibda...";
-                isMyTurn = false;
-                setTimeout(enemyMove, 1000);
+                enemyCells[index].innerHTML = "X";
+                enemyCells[index].classList.add('miss');
+                statusEl.innerText = "Raqib navbati...";
+                setTimeout(enemyTurn, 800);
             }
-            
-            isProcessing = false; // Blokdan chiqarish
         }
 
-        async function enemyMove() {
-            if (!isGameRunning) return;
-            const cells = document.querySelectorAll('.my-cell');
-            let move;
-            do { move = Math.floor(Math.random() * 9); } while (cells[move].innerHTML === "X");
-
-            if (move === myPos) {
-                cells[move].style.background = "#ff4757";
-                document.getElementById('statusText').innerText = "Raqib topdi! Mag'lubiyat.";
-                isGameRunning = false;
-                await fetch('/api/save-result', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, result: 'loss' }) });
-                setTimeout(() => location.reload(), 3000);
+        async function enemyTurn() {
+            if (!gameActive) return;
+            let pick;
+            do { pick = Math.floor(Math.random() * 6); } while (myCells[pick].innerHTML === "X");
+            if (pick === myPepperPos) {
+                myCells[pick].style.backgroundColor = "#e74c3c";
+                statusEl.innerText = "Raqib topdi! Yutqazdingiz.";
+                gameActive = false;
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                await sendResult('loss');
+                setTimeout(() => { location.reload(); }, 2000);
             } else {
-                cells[move].innerHTML = "X";
-                cells[move].classList.add('miss');
-                document.getElementById('statusText').innerText = "Sizning navbatingiz!";
-                isMyTurn = true;
+                myCells[pick].innerHTML = "X";
+                myCells[pick].classList.add('miss');
+                statusEl.innerText = "Sizning navbatingiz!";
             }
-        }
-
-        function sendEmoji(emoji) {
-            showBubble(emoji);
-            if (currentRoomId) {
-                socket.emit('send_emoji', { roomId: currentRoomId, emoji });
-            }
-        }
-
-        socket.on('receive_emoji', (data) => { showBubble(data.emoji); });
-
-        function showBubble(emoji) {
-            const bubble = document.getElementById('chatBubble');
-            bubble.innerText = emoji;
-            bubble.style.display = 'block';
-            setTimeout(() => { bubble.style.display = 'none'; }, 2000);
-        }
-
-        function shareGame() {
-            const shareUrl = `https://t.me/share/url?url=https://t.me/qalampir_top_bot?start=${userId}&text=${encodeURIComponent("🌶️ Qalampir PvP o'yinida meni mag'lub eta olasanmi? Hoziroq o'yinga kir!")}`;
-            tg.openTelegramLink(shareUrl);
         }
     </script>
 </body>
