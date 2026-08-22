@@ -2,13 +2,14 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const { Telegraf, Markup } = require('telegraf');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// 1. Asosiy sahifaga So'rov kelganda (/) index.html ni topib berish
+// 1. WebApp sahifasi yo'nalishi
 app.get('/', (req, res) => {
     const rootIndex = path.join(__dirname, 'index.html');
     const publicIndex = path.join(__dirname, 'public', 'index.html');
@@ -18,15 +19,14 @@ app.get('/', (req, res) => {
     } else if (fs.existsSync(publicIndex)) {
         return res.sendFile(publicIndex);
     } else {
-        return res.status(404).send('<h2>index.html fayli topilmadi! GitHub-da fayl nomini tekshiring.</h2>');
+        return res.status(404).send('index.html topilmadi!');
     }
 });
 
-// Statik papkalarni ulash
 app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 2. O'yin natijasini saqlash API
+// 2. Balans API
 const usersDB = {};
 
 app.post('/game_result', (req, res) => {
@@ -52,15 +52,31 @@ app.post('/game_result', (req, res) => {
     });
 });
 
-// 3. Port sozlamasi
+// 3. Portni ishga tushirish
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server ${PORT}-portda ishlamoqda`);
+    console.log(`Server ${PORT}-portda muvaffaqiyatli ishlayapti`);
 });
 
-// Telegram botni ishga tushirish
-try {
-    require('./bot');
-} catch (e) {
-    console.log("Botni yuklashda xato:", e.message);
-}
+// 4. Telegram Bot (Xatosiz variant)
+const BOT_TOKEN = '8809424395:AAFRdNm6HG168dtZzRDfrmqqM4fm1fsq708';
+const GAME_URL = 'https://qalampir-game.onrender.com';
+
+const bot = new Telegraf(BOT_TOKEN);
+
+bot.start((ctx) => {
+    ctx.reply(
+        `Xush kelibsiz, ${ctx.from.first_name}! 🌶️ Qalampir Topish o'yiniga tayyormisiz?`,
+        Markup.inlineKeyboard([
+            [Markup.button.webApp("🎮 O'yinni Boshlash", GAME_URL)]
+        ])
+    );
+});
+
+// Bot xatolik tufayli serverni o'chirib qo'ymasligi uchun safe launch
+bot.launch().catch(err => {
+    console.log("Botni ishga tushirishda xatolik (lekin server ishlashda davom etadi):", err.message);
+});
+
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
