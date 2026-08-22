@@ -1,20 +1,32 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// Asosiy sahifaga kirganda to'g'ridan-to'g'ri index.html ni beradi
+// 1. Asosiy sahifaga So'rov kelganda (/) index.html ni topib berish
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    const rootIndex = path.join(__dirname, 'index.html');
+    const publicIndex = path.join(__dirname, 'public', 'index.html');
+
+    if (fs.existsSync(rootIndex)) {
+        return res.sendFile(rootIndex);
+    } else if (fs.existsSync(publicIndex)) {
+        return res.sendFile(publicIndex);
+    } else {
+        return res.status(404).send('<h2>index.html fayli topilmadi! GitHub-da fayl nomini tekshiring.</h2>');
+    }
 });
 
-// Statik fayllar uchun
+// Statik papkalarni ulash
 app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, 'public')));
 
+// 2. O'yin natijasini saqlash API
 const usersDB = {};
 
 app.post('/game_result', (req, res) => {
@@ -40,9 +52,15 @@ app.post('/game_result', (req, res) => {
     });
 });
 
+// 3. Port sozlamasi
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server ${PORT}-portda ishlayapti`);
+    console.log(`Server ${PORT}-portda ishlamoqda`);
 });
 
-require('./bot');
+// Telegram botni ishga tushirish
+try {
+    require('./bot');
+} catch (e) {
+    console.log("Botni yuklashda xato:", e.message);
+}
