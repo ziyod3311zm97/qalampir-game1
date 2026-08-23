@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
-const WebSocket = require('ws');
+const { Server } = require('socket.io');
 const path = require('path');
 const { dbQuery } = require('./db');
 const bot = require('./bot');
@@ -9,7 +9,7 @@ const BotAI = require('./botAI');
 
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
@@ -19,112 +19,167 @@ app.get('/api/user/:id', async (req, res) => {
   try {
     const telegramId = req.params.id;
     let user = await dbQuery.getUser(telegramId);
-    
     if (!user) {
-      // Agar foydalanuvchi bazada bo'lmasa, yaratish
       user = await dbQuery.createUser({ id: telegramId, username: '', first_name: 'O\'yinchi' });
     }
-    
     res.json(user);
   } catch (error) {
-    console.error('API /user Error:', error);
     res.status(500).json({ error: 'Server xatoligi' });
   }
 });
 
-// API: Kunlik bonus olish
-app.post('/api/daily-bonus', async (req, res) => {
-  try {
-    const { telegramId } = req.body;
-    const user = await dbQuery.getUser(telegramId);
-    
-    if (!user) {
-      return res.status(404).json({ error: 'Foydalanuvchi topilmadi' });
-    }
+// O'yin xonalari bazasi
+const rooms = new Map();
+let waitingPlayer = null;
 
-    const bonusAmount = 100;
-    await dbQuery.updateBalance(telegramId, bonusAmount, 'daily_bonus', 'Kunlik bonus');
-    
-    const updatedUser = await dbQuery.getUser(telegramId);
-    res.json({ success: true, balance: updatedUser.balance });
-  } catch (error) {
-    console.error('API /daily-bonus Error:', error);
-    res.status(500).json({ error: 'Bonus berishda xatolik' });
-  }
-});
+io.on('connection', (socket) => {
+  console.log('🎮 Foydalanuvchi ulandi:', socket.id);
 
-// WebSocket xonalari (Duellar va O'yinlar uchun)
-const activeRooms = new Map();
+  // Tasodifiy raqib qidirish
+  socket.on('joinRandomGame', (userData) => {
+    socket.userData = userData;
 
-wss.on('connection', (ws) => {
-  let currentUser = null;
+    if (waitingPlayer && waitingPlayer.id !== socket.id) {
+      const roomId = `room_${waitingPlayer.id}_${socket.id}`;
+      const roomData = {
+        id: roomId,
+        players: [waitingPlayer, socket],
+        spots: {},
+        turn: waitingPlayer.id
+      };
 
-  ws.on('message', async (message) => {
-    try {
-      const data = JSON.parse(message);
+      rooms.set(roomId, roomData);
+      waitingPlayer.join(roomId);
+      socket.join(roomId);
 
-      // Foydalanuvchini autentifikatsiya qilish
-      if (data.type === 'INIT_USER') {
-        currentUser = await dbQuery.getUser(data.telegramId);
-        if (currentUser) {
-          ws.send(JSON.stringify({ type: 'USER_DATA', user: currentUser }));
+      waitingPlayer.emit('gameMatched', { roomId, opponent: socket.userData });
+      socket.emit('gameMatched', { roomId, opponent: waitingPlayer.userData });
+
+      waitingPlayer = null;
+    } else {
+      waitingPlayer = socket;
+      socket.emit('waitingForOpponent');
+
+      // 6 soniyadan keyin bot ulanadi
+      setTimeout(() => {
+        if (waitingPlayer === socket) {
+          waitingPlayer = null;
+          const roomId = `bot_room_${socket.id}`;
+          const botId = `bot_${Date.now()}`;
+          const botSpot = Math.floor(Math.random() * 6);
+
+          const roomData = {
+            id: roomId,
+            isBotGame: true,
+            players: [socket, { id: botId, isBot: true }],
+            spots: { [botId]: botSpot },
+            turn: socket.id
+          };
+
+          rooms.set(roomId, roomData);
+          socket.join(roomId);
+          socket.emit('gameMatched', { roomId, opponent: { first_name: '🤖 Bot' } });
         }
-      }
-
-      // Bot bilan o'yin boshlash (Entry Fee: 100 Coin)
-      if (data.type === 'START_BOT_GAME') {
-        const { telegramId, difficulty } = data;
-        const user = await dbQuery.getUser(telegramId);
-
-        if (!user || user.balance < 100) {
-          return ws.send(JSON.stringify({ type: 'ERROR', message: 'Mablag\' yetarli emas! Duelga kirish 100 Coin.' }));
-        }
-
-        // Kirish to'lovini yechish
-        await dbQuery.updateBalance(telegramId, -100, 'game_entry', 'Bot dueliga kirish');
-        
-        ws.send(JSON.stringify({ 
-          type: 'GAME_STARTED', 
-          mode: 'bot', 
-          difficulty: difficulty || 'medium',
-          currentBalance: user.balance - 100 
-        }));
-      }
-
-      // O'yin natijasini qayta ishlash
-      if (data.type === 'GAME_FINISH') {
-        const { telegramId, result } = data; // result: 'win' yoki 'lose'
-
-        if (result === 'win') {
-          // G'olibga 180 Coin mukofot (20 Coin komissiya)
-          await dbQuery.updateBalance(telegramId, 180, 'game_win', 'Duelda g\'alaba');
-          await dbQuery.updateStats(telegramId, true);
-        } else {
-          await dbQuery.updateStats(telegramId, false);
-        }
-
-        const updatedUser = await dbQuery.getUser(telegramId);
-        ws.send(JSON.stringify({ type: 'GAME_RESULT_PROCESSED', user: updatedUser }));
-      }
-
-      // Bot AI harakatini so'rash
-      if (data.type === 'GET_BOT_MOVE') {
-        const { difficulty, availableMoves, winningMove } = data;
-        const move = BotAI.getMove(difficulty, availableMoves, winningMove);
-        ws.send(JSON.stringify({ type: 'BOT_MOVE_RESULT', move }));
-      }
-
-    } catch (err) {
-      console.error('WS Connection Error:', err);
+      }, 6000);
     }
   });
 
-  ws.on('close', () => {
-    // Foydalanuvchi uzilganda
+  // Do'st bilan o'ynash uchun xona yaratish
+  socket.on('createPrivateRoom', (userData) => {
+    socket.userData = userData;
+    const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
+    const roomId = `private_${roomCode}`;
+
+    rooms.set(roomId, {
+      id: roomId,
+      code: roomCode,
+      players: [socket],
+      spots: {},
+      turn: socket.id
+    });
+
+    socket.join(roomId);
+    socket.emit('roomCreated', { roomCode, roomId });
+  });
+
+  // Xonaga kirish
+  socket.on('joinPrivateRoom', ({ roomCode, userData }) => {
+    socket.userData = userData;
+    const roomId = `private_${roomCode}`;
+    const room = rooms.get(roomId);
+
+    if (!room) {
+      return socket.emit('errorMsg', 'Xona topilmadi!');
+    }
+    if (room.players.length >= 2) {
+      return socket.emit('errorMsg', 'Xona to\'la!');
+    }
+
+    room.players.push(socket);
+    socket.join(roomId);
+
+    const player1 = room.players[0];
+    const player2 = room.players[1];
+
+    player1.emit('gameMatched', { roomId, opponent: player2.userData });
+    player2.emit('gameMatched', { roomId, opponent: player1.userData });
+  });
+
+  // Qalampir joylash
+  socket.on('setSpot', ({ roomId, spot }) => {
+    const room = rooms.get(roomId);
+    if (!room) return;
+
+    room.spots[socket.id] = spot;
+
+    const allReady = room.players.every(p => p.isBot || room.spots[p.id] !== undefined);
+    if (allReady) {
+      io.to(roomId).emit('battleStart', { turn: room.turn });
+    }
+  });
+
+  // Hujum qilish
+  socket.on('attackSpot', ({ roomId, spot }) => {
+    const room = rooms.get(roomId);
+    if (!room || room.turn !== socket.id) return;
+
+    const opponent = room.players.find(p => p.id !== socket.id);
+    const opponentSpot = room.spots[opponent.id];
+
+    if (spot === opponentSpot) {
+      // G'alaba!
+      io.to(roomId).emit('gameOver', { winner: socket.id, hitSpot: spot });
+      rooms.delete(roomId);
+    } else {
+      // Tegmadi, navbat almashadi
+      room.turn = opponent.id;
+      io.to(roomId).emit('turnChanged', { attacker: socket.id, spot, nextTurn: opponent.id });
+
+      // Bot yurishi
+      if (opponent.isBot) {
+        setTimeout(() => {
+          const availableMoves = [0, 1, 2, 3, 4, 5];
+          const botAttack = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+          const mySpot = room.spots[socket.id];
+
+          if (botAttack === mySpot) {
+            io.to(roomId).emit('gameOver', { winner: opponent.id, hitSpot: botAttack });
+            rooms.delete(roomId);
+          } else {
+            room.turn = socket.id;
+            io.to(roomId).emit('turnChanged', { attacker: opponent.id, spot: botAttack, nextTurn: socket.id });
+          }
+        }, 1500);
+      }
+    }
+  });
+
+  socket.on('disconnect', () => {
+    if (waitingPlayer === socket) waitingPlayer = null;
   });
 });
 
 const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => {
-  console.log(`🚀 Qalampir Game serveri ${PORT}-portda Render.com muvaffaqiyatli ishga tushdi!`);
+  console.log(`🚀 Qalampir Game serveri ${PORT}-portda muvaffaqiyatli ishga tushdi!`);
 });
