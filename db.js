@@ -7,11 +7,17 @@ if (!connectionString) {
   console.error("❌ XATOLIK: DATABASE_URL topilmadi!");
 }
 
+// PostgreSQL ulanishi uchun SSL sozlamalari
 const pool = new Pool({
   connectionString: connectionString,
   ssl: {
     rejectUnauthorized: false
   }
+});
+
+// SSL xatolarini ulanish darajasida inkor qilish
+pool.on('error', (err) => {
+  console.error('Kutilmagan baza xatosi:', err.message);
 });
 
 const initDB = async () => {
