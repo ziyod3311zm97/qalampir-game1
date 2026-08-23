@@ -1,15 +1,16 @@
 {
-  "name": "qalampir-game1",
+  "name": "qalampir-game",
   "version": "1.0.0",
-  "description": "Telegram Multiplayer Qalampir Game",
+  "description": "Qalampir Game Telegram Mini App",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.18.2",
-    "socket.io": "^4.7.4",
-    "telegraf": "^4.15.3"
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "pg": "^8.11.5",
+    "telegraf": "^4.16.3",
+    "ws": "^8.16.0"
   }
 }
