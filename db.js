@@ -1,13 +1,15 @@
 require('dotenv').config();
 const { Pool } = require('pg');
 
+// SSL sertifikat xatosini (Render uchun) o'chirish
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
   console.error("❌ XATOLIK: DATABASE_URL topilmadi!");
 }
 
-// SSL sertifikat tekshiruvini qat'iy o'chirish sozlamasi
 const pool = new Pool({
   connectionString: connectionString,
   ssl: {
@@ -53,29 +55,48 @@ initDB();
 
 const dbQuery = {
   getUser: async (id) => {
-    const res = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [id]);
-    return res.rows[0];
+    try {
+      const res = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [id]);
+      return res.rows[0];
+    } catch (err) {
+      console.error('getUser xatosi:', err.message);
+      return null;
+    }
   },
   createUser: async (user, referredBy = null) => {
-    const res = await pool.query(
-      'INSERT INTO users (telegram_id, username, first_name, referred_by) VALUES ($1, $2, $3, $4) RETURNING *',
-      [user.id, user.username || '', user.first_name || '', referredBy]
-    );
-    return res.rows[0];
+    try {
+      const res = await pool.query(
+        'INSERT INTO users (telegram_id, username, first_name, referred_by) VALUES ($1, $2, $3, $4) RETURNING *',
+        [user.id, user.username || '', user.first_name || '', referredBy]
+      );
+      return res.rows[0];
+    } catch (err) {
+      console.error('createUser xatosi:', err.message);
+      return null;
+    }
   },
   updateBalance: async (id, amount, type, desc) => {
-    await pool.query('UPDATE users SET balance = balance + $1 WHERE telegram_id = $2', [amount, id]);
-    await pool.query(
-      'INSERT INTO transactions (telegram_id, amount, type, description) VALUES ($1, $2, $3, $4)',
-      [id, amount, type, desc]
-    );
-    return true;
+    try {
+      await pool.query('UPDATE users SET balance = balance + $1 WHERE telegram_id = $2', [amount, id]);
+      await pool.query(
+        'INSERT INTO transactions (telegram_id, amount, type, description) VALUES ($1, $2, $3, $4)',
+        [id, amount, type, desc]
+      );
+      return true;
+    } catch (err) {
+      console.error('updateBalance xatosi:', err.message);
+      return false;
+    }
   },
   updateStats: async (id, isWin) => {
-    if (isWin) {
-      await pool.query('UPDATE users SET wins = wins + 1, streak = streak + 1 WHERE telegram_id = $1', [id]);
-    } else {
-      await pool.query('UPDATE users SET losses = losses + 1, streak = 0 WHERE telegram_id = $1', [id]);
+    try {
+      if (isWin) {
+        await pool.query('UPDATE users SET wins = wins + 1, streak = streak + 1 WHERE telegram_id = $1', [id]);
+      } else {
+        await pool.query('UPDATE users SET losses = losses + 1, streak = 0 WHERE telegram_id = $1', [id]);
+      }
+    } catch (err) {
+      console.error('updateStats xatosi:', err.message);
     }
   }
 };
