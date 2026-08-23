@@ -1,9 +1,6 @@
 require('dotenv').config();
 const { Pool } = require('pg');
 
-// SSL sertifikat xatosini (Render uchun) o'chirish
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
