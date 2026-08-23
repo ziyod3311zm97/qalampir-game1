@@ -24,6 +24,7 @@ app.get('/api/user/:id', async (req, res) => {
     }
     res.json(user);
   } catch (error) {
+    console.error('API Error:', error);
     res.status(500).json({ error: 'Server xatoligi' });
   }
 });
@@ -180,6 +181,14 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 10000;
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`🚀 Qalampir Game serveri ${PORT}-portda muvaffaqiyatli ishga tushdi!`);
+  
+  // Telegram Botni ishga tushirish
+  try {
+    await bot.launch();
+    console.log('🤖 Telegram Bot muvaffaqiyatli faollashtirildi!');
+  } catch (err) {
+    console.error('❌ Telegram Botni ishga tushirishda xatolik:', err.message);
+  }
 });
