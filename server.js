@@ -5,7 +5,6 @@ const { Server } = require('socket.io');
 const path = require('path');
 const { dbQuery } = require('./db');
 const bot = require('./bot');
-const BotAI = require('./botAI');
 
 const app = express();
 const server = http.createServer(app);
@@ -61,7 +60,7 @@ io.on('connection', (socket) => {
       waitingPlayer = socket;
       socket.emit('waitingForOpponent');
 
-      // 6 soniyadan keyin bot ulanadi
+      // 6 soniyada odam topilmasa Bot bilan o'yin boshlanadi
       setTimeout(() => {
         if (waitingPlayer === socket) {
           waitingPlayer = null;
@@ -150,6 +149,7 @@ io.on('connection', (socket) => {
     if (spot === opponentSpot) {
       // G'alaba!
       io.to(roomId).emit('gameOver', { winner: socket.id, hitSpot: spot });
+      if (socket.userData && socket.userData.id) dbQuery.updateStats(socket.userData.id, true);
       rooms.delete(roomId);
     } else {
       // Tegmadi, navbat almashadi
@@ -165,6 +165,7 @@ io.on('connection', (socket) => {
 
           if (botAttack === mySpot) {
             io.to(roomId).emit('gameOver', { winner: opponent.id, hitSpot: botAttack });
+            if (socket.userData && socket.userData.id) dbQuery.updateStats(socket.userData.id, false);
             rooms.delete(roomId);
           } else {
             room.turn = socket.id;
