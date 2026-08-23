@@ -1,16 +1,23 @@
 require('dotenv').config();
 const { Pool } = require('pg');
 
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  console.error("❌ XATOLIK: DATABASE_URL topilmadi!");
+}
+
+// SSL sertifikat tekshiruvini qat'iy o'chirish sozlamasi
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('localhost') 
-    ? { rejectUnauthorized: false } 
-    : false
+  connectionString: connectionString,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 const initDB = async () => {
-  const client = await pool.connect();
   try {
+    const client = await pool.connect();
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
         telegram_id BIGINT PRIMARY KEY,
@@ -36,10 +43,9 @@ const initDB = async () => {
       );
     `);
     console.log('✅ PostgreSQL bazasi tayyor va jadvallar yaratildi');
-  } catch (err) {
-    console.error('❌ Baza yaratishda xatolik:', err);
-  } finally {
     client.release();
+  } catch (err) {
+    console.error('❌ Baza ulanishida xatolik:', err.message);
   }
 };
 
