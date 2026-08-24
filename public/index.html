@@ -14,40 +14,42 @@
             --subtext: #aaaaaa;
         }
         body {
-            font-family: 'Segoe UI', -apple-system, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-color);
             color: var(--text);
             margin: 0; padding: 12px;
             display: flex; flex-direction: column; align-items: center;
+            user-select: none;
         }
         .header {
             width: 100%; max-width: 380px; display: flex; justify-content: space-between;
-            align-items: center; background: var(--card-bg); padding: 10px 14px;
+            align-items: center; background: var(--card-bg); padding: 12px 16px;
             border-radius: 12px; margin-bottom: 12px; box-sizing: border-box;
         }
-        .stat-item { font-size: 14px; font-weight: bold; }
-        .grid-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 380px; margin-bottom: 12px; }
+        .stat-item { font-size: 15px; font-weight: bold; }
+        .grid-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 380px; margin-bottom: 12px; }
         .btn {
             background: var(--card-bg); border: 1px solid #333; color: var(--text);
-            padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px;
+            padding: 14px; border-radius: 10px; font-weight: bold; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px;
         }
+        .btn:active { transform: scale(0.98); opacity: 0.9; }
         .btn-main { background: var(--accent); grid-column: span 2; font-size: 16px; border: none; }
-        .card { background: var(--card-bg); padding: 12px; border-radius: 12px; width: 100%; max-width: 380px; margin-bottom: 12px; box-sizing: border-box; }
-        .card-title { font-size: 13px; color: var(--subtext); margin-bottom: 6px; text-transform: uppercase; }
-        .skin-item, .rank-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2a2a2a; }
+        .card { background: var(--card-bg); padding: 14px; border-radius: 12px; width: 100%; max-width: 380px; margin-bottom: 12px; box-sizing: border-box; }
+        .card-title { font-size: 12px; color: var(--subtext); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .skin-item, .rank-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #2a2a2a; }
         
         /* GAME ARENA STYLES */
-        #game-arena { display: flex; flex-direction: column; align-items: center; width: 100%; }
-        .status { font-size: 14px; color: #aaa; margin-bottom: 10px; height: 20px; text-align: center; }
-        .label { font-size: 12px; color: #888; margin: 6px 0; text-transform: uppercase; letter-spacing: 1px; }
-        .grid-container { display: grid; grid-template-columns: repeat(3, 65px); gap: 10px; }
-        .cell { width: 65px; height: 65px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; transition: 0.2s; box-shadow: 0 3px 6px rgba(0,0,0,0.4); }
-        .my-cell { background-color: #3498db; border: 2px solid #2980b9; }[span_0](start_span)[span_0](end_span)
-        .enemy-cell { background-color: #2c3e50; border: 2px solid #34495e; }[span_1](start_span)[span_1](end_span)
-        .cell.selected { border-color: #ffffff; box-shadow: 0 0 15px #3498db; }[span_2](start_span)[span_2](end_span)
+        #game-arena { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 380px; }
+        .status { font-size: 15px; color: #ffab00; margin-bottom: 12px; font-weight: bold; height: 20px; text-align: center; }
+        .label { font-size: 12px; color: #888; margin: 8px 0; text-transform: uppercase; letter-spacing: 1px; }
+        .grid-container { display: grid; grid-template-columns: repeat(3, 70px); gap: 10px; }
+        .cell { width: 70px; height: 70px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; cursor: pointer; transition: 0.2s; }
+        .my-cell { background-color: #273c75; border: 2px solid #487eb0; }
+        .enemy-cell { background-color: #2c3e50; border: 2px solid #34495e; }
+        .cell.selected { border-color: #ffffff; box-shadow: 0 0 12px #487eb0; }
         .miss { color: #e74c3c; font-weight: bold; font-size: 28px; }
-        hr { width: 100%; max-width: 250px; border: 0; border-top: 1px solid #333; margin: 12px 0; }
+        hr { width: 80%; border: 0; border-top: 1px solid #333; margin: 15px 0; }
         
         .hidden { display: none !important; }
     </style>
@@ -62,7 +64,7 @@
     </div>
 
     <!-- MAIN MENU SCREEN -->
-    <div id="main-menu" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+    <div id="main-menu" style="width: 100%; max-width: 380px;">
         <div class="grid-menu">
             <button class="btn btn-main" onclick="openGameScreen()">⚡ O‘YINNI BOSHLASH</button>
             <button class="btn" onclick="inviteFriend()">👥 DO‘STLAR BILAN</button>
@@ -78,39 +80,39 @@
 
         <div class="card" style="border: 1px solid var(--accent);">
             <div>🔥 <b>Aziz</b> sizni duelga chaqirdi!</div>
-            <button class="btn" style="margin-top: 8px; width: 100%; background: var(--accent);" onclick="openGameScreen()">⚔️ QABUL QILISH</button>
+            <button class="btn btn-main" style="margin-top: 10px; font-size: 14px;" onclick="openGameScreen()">⚔️ QABUL QILISH</button>
         </div>
     </div>
 
     <!-- GAME ARENA SCREEN -->
     <div id="game-arena" class="hidden">
-        <div id="status" class="status">O'z qalampiringizni yashiring!</div>[span_3](start_span)[span_3](end_span)
+        <div id="status" class="status">O'z qalampiringizni yashiring!</div>
 
-        <div class="label">Raqib maydoni</div>[span_4](start_span)[span_4](end_span)
+        <div class="label">Raqib maydoni</div>
         <div class="grid-container" id="enemyGrid">
-            <div class="cell enemy-cell" onclick="attack(0)"></div>[span_5](start_span)[span_5](end_span)
-            <div class="cell enemy-cell" onclick="attack(1)"></div>[span_6](start_span)[span_6](end_span)
-            <div class="cell enemy-cell" onclick="attack(2)"></div>[span_7](start_span)[span_7](end_span)
-            <div class="cell enemy-cell" onclick="attack(3)"></div>[span_8](start_span)[span_8](end_span)
-            <div class="cell enemy-cell" onclick="attack(4)"></div>[span_9](start_span)[span_9](end_span)
-            <div class="cell enemy-cell" onclick="attack(5)"></div>[span_10](start_span)[span_10](end_span)
+            <div class="cell enemy-cell" onclick="attack(0)"></div>
+            <div class="cell enemy-cell" onclick="attack(1)"></div>
+            <div class="cell enemy-cell" onclick="attack(2)"></div>
+            <div class="cell enemy-cell" onclick="attack(3)"></div>
+            <div class="cell enemy-cell" onclick="attack(4)"></div>
+            <div class="cell enemy-cell" onclick="attack(5)"></div>
         </div>
 
-        <hr>[span_11](start_span)[span_11](end_span)
+        <hr>
 
-        <div class="label">Sizning maydoningiz</div>[span_12](start_span)[span_12](end_span)
+        <div class="label">Sizning maydoningiz</div>
         <div class="grid-container" id="myGrid">
-            <div class="cell my-cell" onclick="selectMyPepperSpot(0)"></div>[span_13](start_span)[span_13](end_span)
-            <div class="cell my-cell" onclick="selectMyPepperSpot(1)"></div>[span_14](start_span)[span_14](end_span)
-            <div class="cell my-cell" onclick="selectMyPepperSpot(2)"></div>[span_15](start_span)[span_15](end_span)
-            <div class="cell my-cell" onclick="selectMyPepperSpot(3)"></div>[span_16](start_span)[span_16](end_span)
-            <div class="cell my-cell" onclick="selectMyPepperSpot(4)"></div>[span_17](start_span)[span_17](end_span)
-            <div class="cell my-cell" onclick="selectMyPepperSpot(5)"></div>[span_18](start_span)[span_18](end_span)
+            <div class="cell my-cell" onclick="selectMyPepperSpot(0)"></div>
+            <div class="cell my-cell" onclick="selectMyPepperSpot(1)"></div>
+            <div class="cell my-cell" onclick="selectMyPepperSpot(2)"></div>
+            <div class="cell my-cell" onclick="selectMyPepperSpot(3)"></div>
+            <div class="cell my-cell" onclick="selectMyPepperSpot(4)"></div>
+            <div class="cell my-cell" onclick="selectMyPepperSpot(5)"></div>
         </div>
 
-        <button id="startBtn" class="btn btn-main" style="margin-top: 15px; width: 220px; display: none;" onclick="startGame()">Boshlash (10 Coin)</button>
-        <button id="revengeBtn" class="btn hidden" style="margin-top: 10px; background: #e74c3c;" onclick="resetGame()">😈 QASOS OLISH (REVENGE)</button>
-        <button class="btn" style="margin-top: 10px; width: 220px;" onclick="showTab('main')">⬅️ MENYUGA QAYTISH</button>
+        <button id="startBtn" class="btn btn-main" style="margin-top: 15px; width: 100%; display: none;" onclick="startGame()">Boshlash (10 Coin)</button>
+        <button id="revengeBtn" class="btn hidden" style="margin-top: 10px; width: 100%; background: #e74c3c;" onclick="resetGame()">😈 QASOS OLISH (REVENGE)</button>
+        <button class="btn" style="margin-top: 10px; width: 100%;" onclick="showTab('main')">⬅️ MENYUGA QAYTISH</button>
     </div>
 
     <!-- SKINS TAB -->
@@ -119,7 +121,7 @@
         <div class="skin-item"><span>🌶️ Oddiy Qalampir</span> <b>BEPUL</b></div>
         <div class="skin-item"><span>🔥 Olovli Qalampir</span> <b>1,000 Coin</b></div>
         <div class="skin-item"><span>💎 Diamond Qalampir</span> <b>5,000 Coin</b></div>
-        <button class="btn" style="margin-top: 10px; width:100%;" onclick="showTab('main')">⬅️ ORQAGA</button>
+        <button class="btn" style="margin-top: 15px; width:100%;" onclick="showTab('main')">⬅️ ORQAGA</button>
     </div>
 
     <!-- LEADERBOARD TAB -->
@@ -128,29 +130,26 @@
         <div class="rank-item"><span>1. Ali</span> <b>12,540</b></div>
         <div class="rank-item"><span>2. Bekzod</span> <b>11,920</b></div>
         <div class="rank-item"><span>3. Sardor</span> <b>9,870</b></div>
-        <button class="btn" style="margin-top: 10px; width:100%;" onclick="showTab('main')">⬅️ ORQAGA</button>
+        <button class="btn" style="margin-top: 15px; width:100%;" onclick="showTab('main')">⬅️ ORQAGA</button>
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+        const tg = window.Telegram?.WebApp;
+        if (tg) { tg.expand(); }
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('user_id');
-
-        let myPepperPos = -1;[span_19](start_span)[span_19](end_span)
-        let enemyPepperPos = -1;[span_20](start_span)[span_20](end_span)
-        let gameActive = false;[span_21](start_span)[span_21](end_span)
+        let myPepperPos = -1;
+        let enemyPepperPos = -1;
+        let gameActive = false;
         let coins = 100;
         let streak = 0;
         let energy = 5;
-        const bet = 10;[span_22](start_span)[span_22](end_span)
+        const bet = 10;
         let currentSkin = "🌶️";
 
-        const myCells = document.querySelectorAll('.my-cell');[span_23](start_span)[span_23](end_span)
-        const enemyCells = document.querySelectorAll('.enemy-cell');[span_24](start_span)[span_24](end_span)
-        const statusEl = document.getElementById('status');[span_25](start_span)[span_25](end_span)
-        const startBtn = document.getElementById('startBtn');[span_26](start_span)[span_26](end_span)
+        const myCells = document.querySelectorAll('.my-cell');
+        const enemyCells = document.querySelectorAll('.enemy-cell');
+        const statusEl = document.getElementById('status');
+        const startBtn = document.getElementById('startBtn');
         const revengeBtn = document.getElementById('revengeBtn');
 
         function updateUI() {
@@ -159,131 +158,133 @@
             document.getElementById('energy').innerText = energy + "/5";
         }
 
-        function showTab(tabName) {
+        function hideAllTabs() {
             document.getElementById('main-menu').classList.add('hidden');
             document.getElementById('game-arena').classList.add('hidden');
             document.getElementById('skins-tab').classList.add('hidden');
             document.getElementById('leaderboard-tab').classList.add('hidden');
+        }
 
-            if(tabName === 'main') document.getElementById('main-menu').classList.remove('hidden');
-            if(tabName === 'skins') document.getElementById('skins-tab').classList.remove('hidden');
-            if(tabName === 'leaderboard') document.getElementById('leaderboard-tab').classList.remove('hidden');
+        function showTab(tabName) {
+            hideAllTabs();
+            if (tabName === 'main') document.getElementById('main-menu').classList.remove('hidden');
+            if (tabName === 'skins') document.getElementById('skins-tab').classList.remove('hidden');
+            if (tabName === 'leaderboard') document.getElementById('leaderboard-tab').classList.remove('hidden');
         }
 
         function openGameScreen() {
-            if (energy <= 0) return tg.showAlert("Energiyangiz tugagan! 10 daqiqa kuting yoki reklama ko'ring.");
-            showTab('none');
+            if (energy <= 0) {
+                alert("Energiyangiz tugagan! 10 daqiqa kuting.");
+                return;
+            }
+            hideAllTabs();
             document.getElementById('game-arena').classList.remove('hidden');
             resetGame();
         }
 
         function resetGame() {
-            gameActive = false;[span_27](start_span)[span_27](end_span)
-            myPepperPos = -1;[span_28](start_span)[span_28](end_span)
-            enemyPepperPos = -1;[span_29](start_span)[span_29](end_span)
+            gameActive = false;
+            myPepperPos = -1;
+            enemyPepperPos = -1;
             revengeBtn.classList.add('hidden');
-            startBtn.style.display = "none";[span_30](start_span)[span_30](end_span)
-            statusEl.innerText = "O'z qalampiringizni yashiring!";[span_31](start_span)[span_31](end_span)
+            startBtn.style.display = "none";
+            statusEl.innerText = "O'z qalampiringizni yashiring!";
             
-            myCells.forEach(c => { c.innerHTML = ""; c.classList.remove('selected'); c.style.backgroundColor = "#3498db"; });
+            myCells.forEach(c => { c.innerHTML = ""; c.classList.remove('selected'); c.style.backgroundColor = "#273c75"; });
             enemyCells.forEach(c => { c.innerHTML = ""; c.style.backgroundColor = "#2c3e50"; c.classList.remove('miss'); });
         }
 
         function selectMyPepperSpot(index) {
-            if (gameActive) return;[span_32](start_span)[span_32](end_span)
-            myCells.forEach(c => { c.innerHTML = ""; c.classList.remove('selected'); });[span_33](start_span)[span_33](end_span)
-            myPepperPos = index;[span_34](start_span)[span_34](end_span)
+            if (gameActive) return;
+            myCells.forEach(c => { c.innerHTML = ""; c.classList.remove('selected'); });
+            myPepperPos = index;
             myCells[index].innerHTML = currentSkin;
-            myCells[index].classList.add('selected');[span_35](start_span)[span_35](end_span)
-            statusEl.innerText = "Tayyor! O'yinni boshlang.";[span_36](start_span)[span_36](end_span)
-            startBtn.style.display = "block";[span_37](start_span)[span_37](end_span)
+            myCells[index].classList.add('selected');
+            statusEl.innerText = "Tayyor! O'yinni boshlang.";
+            startBtn.style.display = "block";
         }
 
         function startGame() {
-            if (coins < bet) return tg.showAlert("Tangalaringiz yetarli emas!");
-            if (energy <= 0) return tg.showAlert("Energiyangiz tugadi!");
+            if (coins < bet) {
+                alert("Tangalaringiz yetarli emas!");
+                return;
+            }
+            if (energy <= 0) {
+                alert("Energiyangiz tugadi!");
+                return;
+            }
 
             coins -= bet;
             energy -= 1;
             updateUI();
 
-            gameActive = true;[span_38](start_span)[span_38](end_span)
-            startBtn.style.display = "none";[span_39](start_span)[span_39](end_span)
-            statusEl.innerText = "Raqib qalampirini toping!";[span_40](start_span)[span_40](end_span)
-            enemyPepperPos = Math.floor(Math.random() * 6);[span_41](start_span)[span_41](end_span)
+            gameActive = true;
+            startBtn.style.display = "none";
+            statusEl.innerText = "Raqib qalampirini toping!";
+            enemyPepperPos = Math.floor(Math.random() * 6);
         }
 
-        async function attack(index) {
-            if (!gameActive || enemyCells[index].innerHTML !== "") return;[span_42](start_span)[span_42](end_span)
+        function attack(index) {
+            if (!gameActive || enemyCells[index].innerHTML !== "") return;
             
             if (index === enemyPepperPos) {
                 enemyCells[index].innerHTML = currentSkin;
-                enemyCells[index].style.backgroundColor = "#2ecc71";[span_43](start_span)[span_43](end_span)
+                enemyCells[index].style.backgroundColor = "#2ecc71";
                 
                 streak += 1;
-                let reward = 18 + (streak * 2); // Win streak bonus
+                let reward = 18 + (streak * 2);
                 coins += reward;
                 updateUI();
 
                 statusEl.innerText = `Yutdingiz! +${reward} Coin (Streak: ${streak})`;
-                gameActive = false;[span_44](start_span)[span_44](end_span)
-                tg.HapticFeedback?.notificationOccurred('success');[span_45](start_span)[span_45](end_span)
-                await sendResult('win');
+                gameActive = false;
+                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
             } else {
-                enemyCells[index].innerHTML = "X";[span_46](start_span)[span_46](end_span)
-                enemyCells[index].classList.add('miss');[span_47](start_span)[span_47](end_span)
-                statusEl.innerText = "Raqib navbati...";[span_48](start_span)[span_48](end_span)
-                setTimeout(enemyTurn, 700);
+                enemyCells[index].innerHTML = "X";
+                enemyCells[index].classList.add('miss');
+                statusEl.innerText = "Raqib navbati...";
+                setTimeout(enemyTurn, 600);
             }
         }
 
-        async function enemyTurn() {
-            if (!gameActive) return;[span_49](start_span)[span_49](end_span)
+        function enemyTurn() {
+            if (!gameActive) return;
             let pick;
-            do { pick = Math.floor(Math.random() * 6); } while (myCells[pick].innerHTML === "X");[span_50](start_span)[span_50](end_span)
+            do { pick = Math.floor(Math.random() * 6); } while (myCells[pick].innerHTML === "X");
             
             if (pick === myPepperPos) {
-                myCells[pick].style.backgroundColor = "#e74c3c";[span_51](start_span)[span_51](end_span)
-                statusEl.innerText = "Raqib topdi! Yutqazdingiz.";[span_52](start_span)[span_52](end_span)
-                streak = 0; // Streak nollanadi
+                myCells[pick].style.backgroundColor = "#e74c3c";
+                statusEl.innerText = "Raqib topdi! Yutqazdingiz.";
+                streak = 0;
                 updateUI();
 
-                gameActive = false;[span_53](start_span)[span_53](end_span)
-                revengeBtn.classList.remove('hidden'); // Revenge tugmasi chiqadi
-                tg.HapticFeedback?.notificationOccurred('error');[span_54](start_span)[span_54](end_span)
-                await sendResult('loss');
+                gameActive = false;
+                revengeBtn.classList.remove('hidden');
+                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
             } else {
-                myCells[pick].innerHTML = "X";[span_55](start_span)[span_55](end_span)
-                myCells[pick].classList.add('miss');[span_56](start_span)[span_56](end_span)
-                statusEl.innerText = "Sizning navbatingiz!";[span_57](start_span)[span_57](end_span)
+                myCells[pick].innerHTML = "X";
+                myCells[pick].classList.add('miss');
+                statusEl.innerText = "Sizning navbatingiz!";
             }
-        }
-
-        async function sendResult(res) {
-            try {
-                await fetch(`http://YOUR_SERVER_IP:5001/game_result`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId, result: res })
-                });
-            } catch (e) { console.log("Server xatosi:", e); }
         }
 
         function inviteFriend() {
-            const user = tg.initDataUnsafe?.user;
+            const user = tg?.initDataUnsafe?.user;
             const refLink = `https://t.me/QalampirBot?start=ref_${user?.id || '123456'}`;
             const text = "🔥 MENI YUTA OLASANMI?\n\nMen Qalampir Topishda seni duelga chaqiryapman! Meni yutsang — 1,000 Coin olasan 😈";
-            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent(text)}`);
+            if (tg) {
+                tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent(text)}`);
+            }
         }
 
         function claimDaily() {
             coins += 50;
             updateUI();
-            tg.showAlert("Kunlik bonus olindi: +50 Coin!");
+            alert("Kunlik bonus olindi: +50 Coin!");
         }
 
         updateUI();
     </script>
 </body>
-                                                                                                                                            </html>
-  
+                </html>
+    
