@@ -1,184 +1,130 @@
 <!DOCTYPE html>
 <html lang="uz">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Qalampir Topish Online</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #E0E0E0; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 15px; overflow: hidden; }
-        h2 { margin: 5px 0; font-size: 22px; color: #ffffff; }
-        .menu-box { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; width: 85%; max-width: 300px; }
-        .menu-btn { background-color: #2563eb; color: white; border: none; padding: 14px; font-size: 15px; border-radius: 12px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(37,99,235,0.3); }
-        .menu-btn.green { background-color: #10b981; box-shadow: 0 4px 10px rgba(16,185,129,0.3); }
-        .input-code { padding: 12px; font-size: 16px; border-radius: 10px; border: 1px solid #333; background: #1e293b; color: white; text-align: center; }
-        
-        .game-area { display: none; flex-direction: column; align-items: center; width: 100%; }
-        .status { font-size: 15px; color: #FFD700; margin-bottom: 12px; height: 35px; text-align: center; font-weight: bold; }
-        .label { font-size: 12px; color: #888; margin: 6px 0; text-transform: uppercase; letter-spacing: 1px; }
-        .grid-container { display: grid; grid-template-columns: repeat(3, 70px); gap: 10px; }
-        .cell { width: 70px; height: 70px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 26px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
-        .my-cell { background-color: #1e293b; border: 2px solid #3b82f6; }
-        .enemy-cell { background-color: #1e293b; border: 2px solid #ef4444; }
-        .cell.selected { border-color: #10b981; box-shadow: 0 0 15px #10b981; }
-        .miss { color: #94a3b8; background-color: #0f172a; font-weight: bold; }
-        hr { width: 80%; border: 0; border-top: 1px solid #333; margin: 12px 0; }
-        .start-btn { background-color: #10b981; color: white; border: none; padding: 12px 30px; font-size: 16px; border-radius: 25px; margin-top: 12px; font-weight: bold; cursor: pointer; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Qalampir - Telegram Game</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg-color: #121212;
+      --card-bg: #1e1e1e;
+      --accent: #ff4500;
+      --text: #ffffff;
+      --subtext: #aaaaaa;
+    }
+    body {
+      margin: 0; padding: 12px;
+      background-color: var(--bg-color);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--card-bg); padding: 12px 16px; border-radius: 12px; margin-bottom: 12px;
+    }
+    .stat-item { font-size: 14px; font-weight: bold; }
+    .grid-menu {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;
+    }
+    .btn {
+      background: var(--card-bg); border: 1px solid #333; color: var(--text);
+      padding: 14px; border-radius: 10px; font-weight: bold; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-main { background: var(--accent); grid-column: span 2; font-size: 18px; }
+    .card {
+      background: var(--card-bg); padding: 14px; border-radius: 12px; margin-bottom: 12px;
+    }
+    .card-title { font-size: 14px; color: var(--subtext); margin-bottom: 8px; }
+    .skin-item, .rank-item {
+      display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2a2a2a;
+    }
+    .hidden { display: none; }
+  </style>
 </head>
 <body>
 
-    <h2>🌶️ Qalampir Topish</h2>
+  <!-- TOP STATS -->
+  <div class="header">
+    <div class="stat-item">🌶️ <span id="coins">12,450</span></div>
+    <div class="stat-item">🔥 <span id="streak">7</span> Win</div>
+    <div class="stat-item">⚡ <span id="energy">5/5</span></div>
+  </div>
 
-    <!-- REJIM TANLASH MENYUSI -->
-    <div id="modeMenu" class="menu-box">
-        <button class="menu-btn green" onclick="startRandom()">⚡ Tasodifiy Raqib (yoki Bot)</button>
-        <button class="menu-btn" onclick="createRoom()">👥 Do'st Bilan O'ynash (Xona yaratish)</button>
-        <hr style="width:100%;">
-        <input type="number" id="roomInput" class="input-code" placeholder="4 xonali kodni kiriting">
-        <button class="menu-btn" onclick="joinRoom()">🚪 Xonaga Kirish</button>
+  <!-- MAIN MENU -->
+  <div id="main-menu">
+    <div class="grid-menu">
+      <button class="btn btn-main" onclick="startGame('pro')">⚡ O‘YINNI BOSHLASH</button>
+      <button class="btn" onclick="inviteFriend()">👥 DO‘STLAR BILAN</button>
+      <button class="btn" onclick="showTab('leaderboard')">🏆 REYTING</button>
+      <button class="btn" onclick="claimDaily()">🎁 BONUS</button>
+      <button class="btn" onclick="showTab('skins')">🌶️ SKINLAR</button>
     </div>
 
-    <!-- O'YIN MAYDONI -->
-    <div id="gameArea" class="game-area">
-        <div id="status" class="status">Kutilmoqda...</div>
-
-        <div class="label">Raqib maydoni (Hujum)</div>
-        <div class="grid-container">
-            <div class="cell enemy-cell" onclick="attack(0)"></div>
-            <div class="cell enemy-cell" onclick="attack(1)"></div>
-            <div class="cell enemy-cell" onclick="attack(2)"></div>
-            <div class="cell enemy-cell" onclick="attack(3)"></div>
-            <div class="cell enemy-cell" onclick="attack(4)"></div>
-            <div class="cell enemy-cell" onclick="attack(5)"></div>
-        </div>
-
-        <hr>
-
-        <div class="label">Sizning maydoningiz</div>
-        <div class="grid-container">
-            <div class="cell my-cell" onclick="selectMySpot(0)"></div>
-            <div class="cell my-cell" onclick="selectMySpot(1)"></div>
-            <div class="cell my-cell" onclick="selectMySpot(2)"></div>
-            <div class="cell my-cell" onclick="selectMySpot(3)"></div>
-            <div class="cell my-cell" onclick="selectMySpot(4)"></div>
-            <div class="cell my-cell" onclick="selectMySpot(5)"></div>
-        </div>
-
-        <button id="readyBtn" class="start-btn" style="display:none;" onclick="confirmSpot()">Tayyorman!</button>
+    <!-- CHALLENGES & NOTIFICATIONS -->
+    <div class="card">
+      <div class="card-title">KUNLIK VAZIFA</div>
+      <div>🎯 3 ta o‘yin yut — <b>+500 Coin</b></div>
     </div>
 
-    <script>
-        const socket = io();
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+    <div class="card" id="duel-alert" style="border: 1px solid var(--accent);">
+      <div>🔥 <b>Aziz</b> sizni duelga chaqirdi!</div>
+      <button class="btn" style="margin-top: 8px; width: 100%;" onclick="acceptDuel('Aziz')">⚔️ QABUL QILISH</button>
+    </div>
+  </div>
 
-        const user = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : { first_name: "O'yinchi" };
+  <!-- SKINS TAB -->
+  <div id="skins-tab" class="card hidden">
+    <div class="card-title">SKINLAR DO‘KONI</div>
+    <div class="skin-item"><span>🌶️ Oddiy Qalampir</span> <b>BEPUL</b></div>
+    <div class="skin-item"><span>🔥 Olovli Qalampir</span> <b>1,000 Coin</b></div>
+    <div class="skin-item"><span>💎 Diamond Qalampir</span> <b>5,000 Coin</b></div>
+    <button class="btn" style="margin-top: 10px; width:100%;" onclick="showTab('main')">⬅️ ORQAGA</button>
+  </div>
 
-        let mySpot = -1;
-        let currentRoom = null;
-        let isMyTurn = false;
-        let gamePhase = "WAITING";
+  <!-- LEADERBOARD TAB -->
+  <div id="leaderboard-tab" class="card hidden">
+    <div class="card-title">TOP O‘YINCHILAR</div>
+    <div class="rank-item"><span>1. Ali</span> <b>12,540</b></div>
+    <div class="rank-item"><span>2. Bekzod</span> <b>11,920</b></div>
+    <div class="rank-item"><span>3. Sardor</span> <b>9,870</b></div>
+    <button class="btn" style="margin-top: 10px; width:100%;" onclick="showTab('main')">⬅️ ORQAGA</button>
+  </div>
 
-        const modeMenu = document.getElementById('modeMenu');
-        const gameArea = document.getElementById('gameArea');
-        const statusEl = document.getElementById('status');
-        const readyBtn = document.getElementById('readyBtn');
-        const myCells = document.querySelectorAll('.my-cell');
-        const enemyCells = document.querySelectorAll('.enemy-cell');
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
 
-        function startRandom() {
-            modeMenu.style.display = 'none';
-            gameArea.style.display = 'flex';
-            statusEl.innerText = "Raqib qidirilmoqda...";
-            socket.emit('joinRandomGame', user);
-        }
+    function showTab(tabName) {
+      document.getElementById('main-menu').classList.add('hidden');
+      document.getElementById('skins-tab').classList.add('hidden');
+      document.getElementById('leaderboard-tab').classList.add('hidden');
 
-        function createRoom() {
-            socket.emit('createPrivateRoom', user);
-        }
+      if(tabName === 'main') document.getElementById('main-menu').classList.remove('hidden');
+      if(tabName === 'skins') document.getElementById('skins-tab').classList.remove('hidden');
+      if(tabName === 'leaderboard') document.getElementById('leaderboard-tab').classList.remove('hidden');
+    }
 
-        socket.on('roomCreated', (data) => {
-            modeMenu.style.display = 'none';
-            gameArea.style.display = 'flex';
-            statusEl.innerText = `Xona yaratildi! Kodingiz: ${data.roomCode}\nDo'stingizga ushbu kodni ayting!`;
-        });
+    function inviteFriend() {
+      const user = tg.initDataUnsafe?.user;
+      const refLink = `https://t.me/QalampirBot?start=ref_${user?.id || '123456'}`;
+      const text = "🔥 MENI YUTA OLASANMI?\n\nMen Qalampir Topishda seni duelga chaqiryapman! Meni yutsang — 1,000 Coin olasan 😈";
+      
+      tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent(text)}`);
+    }
 
-        function joinRoom() {
-            const code = document.getElementById('roomInput').value;
-            if (!code || code.length !== 4) return alert("4 xonali kod kiriting!");
-            modeMenu.style.display = 'none';
-            gameArea.style.display = 'flex';
-            statusEl.innerText = "Xonaga ulanilmoqda...";
-            socket.emit('joinPrivateRoom', { roomCode: code, userData: user });
-        }
+    function startGame(mode) {
+      tg.showAlert("O'yin boshlanmoqda! Mode: " + mode);
+    }
 
-        socket.on('errorMsg', (msg) => {
-            alert(msg);
-            location.reload();
-        });
+    function acceptDuel(opponent) {
+      tg.showAlert(opponent + " bilan duel boshlandi!");
+    }
 
-        socket.on('waitingForOpponent', () => {
-            statusEl.innerText = "Raqib kutilmoqda...\n(6 soniyada odam topilmasa Bot ulanadi)";
-        });
-
-        socket.on('gameMatched', (data) => {
-            currentRoom = data.roomId;
-            gamePhase = "PLACE";
-            statusEl.innerText = `Raqib: ${data.opponent.first_name}!\nQalampiringizni yashiring.`;
-        });
-
-        function selectMySpot(index) {
-            if (gamePhase !== "PLACE") return;
-            myCells.forEach(c => { c.innerHTML = ""; c.classList.remove('selected'); });
-            mySpot = index;
-            myCells[index].innerHTML = "🌶️";
-            myCells[index].classList.add('selected');
-            readyBtn.style.display = "block";
-        }
-
-        function confirmSpot() {
-            if (mySpot === -1) return;
-            readyBtn.style.display = "none";
-            statusEl.innerText = "Raqib tayyor bo'lishi kutilmoqda...";
-            socket.emit('setSpot', { roomId: currentRoom, spot: mySpot });
-        }
-
-        socket.on('battleStart', (data) => {
-            gamePhase = "BATTLE";
-            isMyTurn = (data.turn === socket.id);
-            statusEl.innerText = isMyTurn ? "🔥 Sizning navbatingiz!" : "⏳ Raqib navbati...";
-        });
-
-        function attack(index) {
-            if (gamePhase !== "BATTLE" || !isMyTurn || enemyCells[index].innerHTML !== "") return;
-            socket.emit('attackSpot', { roomId: currentRoom, spot: index });
-        }
-
-        socket.on('turnChanged', (data) => {
-            if (data.attacker === socket.id) {
-                enemyCells[data.spot].innerHTML = "❌";
-                enemyCells[data.spot].classList.add('miss');
-            } else {
-                myCells[data.spot].innerHTML = "❌";
-                myCells[data.spot].classList.add('miss');
-            }
-            isMyTurn = (data.nextTurn === socket.id);
-            statusEl.innerText = isMyTurn ? "🔥 Sizning navbatingiz!" : "⏳ Raqib navbati...";
-        });
-
-        socket.on('gameOver', (data) => {
-            gamePhase = "END";
-            if (data.winner === socket.id) {
-                statusEl.innerText = "🏆 SIZ YUTDINGIZ!";
-                if (data.hitSpot !== undefined) enemyCells[data.hitSpot].innerHTML = "🌶️";
-            } else {
-                statusEl.innerText = "❌ YUTQAZDINGIZ!";
-                if (data.hitSpot !== undefined) myCells[data.hitSpot].innerHTML = "🌶️";
-            }
-            setTimeout(() => { location.reload(); }, 4000);
-        });
-    </script>
+    function claimDaily() {
+      tg.showAlert("Kunlik bonus olindi: +100 Coin!");
+    }
+  </script>
 </body>
 </html>
