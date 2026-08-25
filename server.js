@@ -1,195 +1,363 @@
-require('dotenv').config();
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const path = require('path');
-const { dbQuery } = require('./db');
-const bot = require('./bot');
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
 
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.json());
-
-// API: Foydalanuvchi ma'lumotlarini olish
-app.get('/api/user/:id', async (req, res) => {
-  try {
-    const telegramId = req.params.id;
-    let user = await dbQuery.getUser(telegramId);
-    if (!user) {
-      user = await dbQuery.createUser({ id: telegramId, username: '', first_name: 'O\'yinchi' });
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
     }
-    res.json(user);
-  } catch (error) {
-    console.error('API Error:', error);
-    res.status(500).json({ error: 'Server xatoligi' });
-  }
 });
 
-// O'yin xonalari bazasi
-const rooms = new Map();
-let waitingPlayer = null;
+const PORT = process.env.PORT || 3000;
 
-io.on('connection', (socket) => {
-  console.log('🎮 Foydalanuvchi ulandi:', socket.id);
+// Agar frontend (index.html) shu repo ichida /public papkasida bo'lsa, shu orqali serve qilinadi.
+app.use(express.static(path.join(__dirname, "public")));
 
-  // Tasodifiy raqib qidirish
-  socket.on('joinRandomGame', (userData) => {
-    socket.userData = userData;
+app.get("/health", (req, res) => {
+    res.json({ status: "ok", rooms: Object.keys(rooms).length });
+});
 
-    if (waitingPlayer && waitingPlayer.id !== socket.id) {
-      const roomId = `room_${waitingPlayer.id}_${socket.id}`;
-      const roomData = {
-        id: roomId,
-        players: [waitingPlayer, socket],
-        spots: {},
-        turn: waitingPlayer.id
-      };
+/* =========================================================
+   O'YIN HOLATI (IN-MEMORY)
+========================================================= */
 
-      rooms.set(roomId, roomData);
-      waitingPlayer.join(roomId);
-      socket.join(roomId);
+// rooms[roomId] = {
+//   id, code, isPrivate, phase: 'waiting'|'placing'|'battle'|'ended',
+//   players: [ { socketId, userId, name, spot, isBot } ],
+//   turn: socketId
+// }
+const rooms = {};
 
-      waitingPlayer.emit('gameMatched', { roomId, opponent: socket.userData });
-      socket.emit('gameMatched', { roomId, opponent: waitingPlayer.userData });
+// Tasodifiy o'yin uchun navbat: { socket, user }
+let waitingQueue = null;
+let waitingTimeout = null;
 
-      waitingPlayer = null;
-    } else {
-      waitingPlayer = socket;
-      socket.emit('waitingForOpponent');
+const GRID_SIZE = 6;
 
-      // 6 soniyada odam topilmasa Bot bilan o'yin boshlanadi
-      setTimeout(() => {
-        if (waitingPlayer === socket) {
-          waitingPlayer = null;
-          const roomId = `bot_room_${socket.id}`;
-          const botId = `bot_${Date.now()}`;
-          const botSpot = Math.floor(Math.random() * 6);
+/* =========================================================
+   YORDAMCHI FUNKSIYALAR
+========================================================= */
 
-          const roomData = {
-            id: roomId,
-            isBotGame: true,
-            players: [socket, { id: botId, isBot: true }],
-            spots: { [botId]: botSpot },
-            turn: socket.id
-          };
+function generateRoomId() {
+    return "r_" + Math.random().toString(36).slice(2, 10);
+}
 
-          rooms.set(roomId, roomData);
-          socket.join(roomId);
-          socket.emit('gameMatched', { roomId, opponent: { first_name: '🤖 Bot' } });
+function generateRoomCode() {
+    let code;
+    do {
+        code = String(Math.floor(1000 + Math.random() * 9000));
+    } while (Object.values(rooms).some(r => r.code === code));
+    return code;
+}
+
+function randomSpot() {
+    return Math.floor(Math.random() * GRID_SIZE);
+}
+
+function getOpponent(room, socketId) {
+    return room.players.find(p => p.socketId !== socketId);
+}
+
+function getPlayer(room, socketId) {
+    return room.players.find(p => p.socketId === socketId);
+}
+
+function publicUser(p) {
+    return { id: p.userId, first_name: p.name };
+}
+
+function bothPlayersReady(room) {
+    return room.players.length === 2 && room.players.every(p => p.spot !== undefined && p.spot !== -1);
+}
+
+// O'yinni jangga o'tkazish (ikkala tomon ham joy tanlagandan keyin)
+function startBattle(room) {
+    room.phase = "battle";
+
+    const first = room.players[Math.floor(Math.random() * 2)];
+    room.turn = first.socketId;
+
+    room.players.forEach(p => {
+        if (!p.isBot) {
+            io.to(p.socketId).emit("battleStart", { turn: first.socketId });
         }
-      }, 6000);
-    }
-  });
-
-  // Do'st bilan o'ynash uchun xona yaratish
-  socket.on('createPrivateRoom', (userData) => {
-    socket.userData = userData;
-    const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
-    const roomId = `private_${roomCode}`;
-
-    rooms.set(roomId, {
-      id: roomId,
-      code: roomCode,
-      players: [socket],
-      spots: {},
-      turn: socket.id
     });
 
-    socket.join(roomId);
-    socket.emit('roomCreated', { roomCode, roomId });
-  });
-
-  // Xonaga kirish
-  socket.on('joinPrivateRoom', ({ roomCode, userData }) => {
-    socket.userData = userData;
-    const roomId = `private_${roomCode}`;
-    const room = rooms.get(roomId);
-
-    if (!room) {
-      return socket.emit('errorMsg', 'Xona topilmadi!');
+    // Agar birinchi navbat botga tegsa, bot avtomatik hujum qiladi
+    if (first.isBot) {
+        scheduleBotAttack(room);
     }
-    if (room.players.length >= 2) {
-      return socket.emit('errorMsg', 'Xona to\'la!');
+}
+
+// Bot uchun random joy va random hujum
+function scheduleBotAttack(room) {
+    setTimeout(() => {
+        if (!rooms[room.id] || room.phase !== "battle") return;
+        const bot = room.players.find(p => p.isBot);
+        const human = room.players.find(p => !p.isBot);
+        if (!bot || !human) return;
+
+        const usedSpots = room._botUsedSpots || (room._botUsedSpots = new Set());
+        let spot;
+        do {
+            spot = randomSpot();
+        } while (usedSpots.has(spot) && usedSpots.size < GRID_SIZE);
+        usedSpots.add(spot);
+
+        handleAttack(room, bot.socketId, spot);
+    }, 900 + Math.random() * 900);
+}
+
+function endRoom(roomId) {
+    delete rooms[roomId];
+}
+
+/* =========================================================
+   HUJUM MANTIG'I (umumiy: odam ham, bot ham ishlatadi)
+========================================================= */
+
+function handleAttack(room, attackerSocketId, spot) {
+    if (room.phase !== "battle") return;
+    if (room.turn !== attackerSocketId) return;
+
+    const attacker = getPlayer(room, attackerSocketId);
+    const defender = getOpponent(room, attackerSocketId);
+    if (!attacker || !defender) return;
+
+    const isHit = defender.spot === spot;
+
+    if (isHit) {
+        room.phase = "ended";
+
+        // G'olib va mag'lub bo'lgan odamlarga alohida xabar (winner har doim bitta socketId)
+        room.players.forEach(p => {
+            if (!p.isBot) {
+                io.to(p.socketId).emit("gameOver", {
+                    winner: attacker.socketId,
+                    hitSpot: spot
+                });
+            }
+        });
+
+        setTimeout(() => endRoom(room.id), 5000);
+        return;
     }
 
-    room.players.push(socket);
-    socket.join(roomId);
+    // Miss — navbat almashadi
+    const nextPlayer = defender;
+    room.turn = nextPlayer.socketId;
 
-    const player1 = room.players[0];
-    const player2 = room.players[1];
+    room.players.forEach(p => {
+        if (!p.isBot) {
+            io.to(p.socketId).emit("turnChanged", {
+                attacker: attacker.socketId,
+                spot,
+                nextTurn: nextPlayer.socketId
+            });
+        }
+    });
 
-    player1.emit('gameMatched', { roomId, opponent: player2.userData });
-    player2.emit('gameMatched', { roomId, opponent: player1.userData });
-  });
-
-  // Qalampir joylash
-  socket.on('setSpot', ({ roomId, spot }) => {
-    const room = rooms.get(roomId);
-    if (!room) return;
-
-    room.spots[socket.id] = spot;
-
-    const allReady = room.players.every(p => p.isBot || room.spots[p.id] !== undefined);
-    if (allReady) {
-      io.to(roomId).emit('battleStart', { turn: room.turn });
+    if (nextPlayer.isBot) {
+        scheduleBotAttack(room);
     }
-  });
+}
 
-  // Hujum qilish
-  socket.on('attackSpot', ({ roomId, spot }) => {
-    const room = rooms.get(roomId);
-    if (!room || room.turn !== socket.id) return;
+/* =========================================================
+   SOCKET.IO ULANISHLARI
+========================================================= */
 
-    const opponent = room.players.find(p => p.id !== socket.id);
-    const opponentSpot = room.spots[opponent.id];
+io.on("connection", socket => {
 
-    if (spot === opponentSpot) {
-      // G'alaba!
-      io.to(roomId).emit('gameOver', { winner: socket.id, hitSpot: spot });
-      if (socket.userData && socket.userData.id) dbQuery.updateStats(socket.userData.id, true);
-      rooms.delete(roomId);
-    } else {
-      // Tegmadi, navbat almashadi
-      room.turn = opponent.id;
-      io.to(roomId).emit('turnChanged', { attacker: socket.id, spot, nextTurn: opponent.id });
+    /* ---------- TASODIFIY O'YIN ---------- */
 
-      // Bot yurishi
-      if (opponent.isBot) {
-        setTimeout(() => {
-          const availableMoves = [0, 1, 2, 3, 4, 5];
-          const botAttack = availableMoves[Math.floor(Math.random() * availableMoves.length)];
-          const mySpot = room.spots[socket.id];
+    socket.on("joinRandomGame", userData => {
+        const user = userData || {};
 
-          if (botAttack === mySpot) {
-            io.to(roomId).emit('gameOver', { winner: opponent.id, hitSpot: botAttack });
-            if (socket.userData && socket.userData.id) dbQuery.updateStats(socket.userData.id, false);
-            rooms.delete(roomId);
-          } else {
-            room.turn = socket.id;
-            io.to(roomId).emit('turnChanged', { attacker: opponent.id, spot: botAttack, nextTurn: socket.id });
-          }
-        }, 1500);
-      }
-    }
-  });
+        // Navbatda kimdir kutayotgan bo'lsa — moslashtiramiz
+        if (waitingQueue && waitingQueue.socket.connected) {
+            clearTimeout(waitingTimeout);
 
-  socket.on('disconnect', () => {
-    if (waitingPlayer === socket) waitingPlayer = null;
-  });
+            const p1 = waitingQueue;
+            waitingQueue = null;
+
+            const roomId = generateRoomId();
+            const room = {
+                id: roomId,
+                code: null,
+                isPrivate: false,
+                phase: "placing",
+                players: [
+                    { socketId: p1.socket.id, userId: p1.user.id, name: p1.user.first_name, spot: -1, isBot: false },
+                    { socketId: socket.id, userId: user.id, name: user.first_name, spot: -1, isBot: false }
+                ],
+                turn: null
+            };
+
+            rooms[roomId] = room;
+
+            p1.socket.join(roomId);
+            socket.join(roomId);
+
+            io.to(p1.socket.id).emit("gameMatched", { roomId, opponent: publicUser(room.players[1]) });
+            io.to(socket.id).emit("gameMatched", { roomId, opponent: publicUser(room.players[0]) });
+
+            return;
+        }
+
+        // Bo'sh — navbatga qo'yamiz va 6 soniya botni kutamiz
+        waitingQueue = { socket, user };
+        socket.emit("waitingForOpponent");
+
+        waitingTimeout = setTimeout(() => {
+            if (!waitingQueue || waitingQueue.socket.id !== socket.id) return;
+
+            waitingQueue = null;
+
+            const roomId = generateRoomId();
+            const room = {
+                id: roomId,
+                code: null,
+                isPrivate: false,
+                phase: "placing",
+                players: [
+                    { socketId: socket.id, userId: user.id, name: user.first_name, spot: -1, isBot: false },
+                    { socketId: "bot_" + roomId, userId: "bot", name: "Bot 🤖", spot: randomSpot(), isBot: true }
+                ],
+                turn: null
+            };
+
+            rooms[roomId] = room;
+            socket.join(roomId);
+
+            io.to(socket.id).emit("gameMatched", {
+                roomId,
+                opponent: publicUser(room.players[1])
+            });
+        }, 6000);
+    });
+
+    /* ---------- XUSUSIY XONA YARATISH ---------- */
+
+    socket.on("createPrivateRoom", userData => {
+        const user = userData || {};
+        const roomId = generateRoomId();
+        const code = generateRoomCode();
+
+        const room = {
+            id: roomId,
+            code,
+            isPrivate: true,
+            phase: "waiting",
+            players: [
+                { socketId: socket.id, userId: user.id, name: user.first_name, spot: -1, isBot: false }
+            ],
+            turn: null
+        };
+
+        rooms[roomId] = room;
+        socket.join(roomId);
+
+        socket.emit("roomCreated", { roomId, roomCode: code });
+    });
+
+    /* ---------- XUSUSIY XONAGA QO'SHILISH ---------- */
+
+    socket.on("joinPrivateRoom", ({ roomCode, userData } = {}) => {
+        const user = userData || {};
+        const room = Object.values(rooms).find(r => r.isPrivate && r.code === roomCode);
+
+        if (!room) {
+            socket.emit("errorMsg", "Bunday kodli xona topilmadi!");
+            return;
+        }
+
+        if (room.players.length >= 2) {
+            socket.emit("errorMsg", "Xona allaqachon to'ldirilgan!");
+            return;
+        }
+
+        room.players.push({
+            socketId: socket.id,
+            userId: user.id,
+            name: user.first_name,
+            spot: -1,
+            isBot: false
+        });
+
+        room.phase = "placing";
+        socket.join(room.id);
+
+        io.to(room.players[0].socketId).emit("gameMatched", {
+            roomId: room.id,
+            opponent: publicUser(room.players[1])
+        });
+
+        io.to(room.players[1].socketId).emit("gameMatched", {
+            roomId: room.id,
+            opponent: publicUser(room.players[0])
+        });
+    });
+
+    /* ---------- QALAMPIRNI YASHIRISH ---------- */
+
+    socket.on("setSpot", ({ roomId, spot } = {}) => {
+        const room = rooms[roomId];
+        if (!room || room.phase !== "placing") return;
+
+        const player = getPlayer(room, socket.id);
+        if (!player) return;
+
+        if (typeof spot !== "number" || spot < 0 || spot >= GRID_SIZE) return;
+
+        player.spot = spot;
+
+        if (bothPlayersReady(room)) {
+            startBattle(room);
+        }
+    });
+
+    /* ---------- HUJUM ---------- */
+
+    socket.on("attackSpot", ({ roomId, spot } = {}) => {
+        const room = rooms[roomId];
+        if (!room) return;
+        if (typeof spot !== "number" || spot < 0 || spot >= GRID_SIZE) return;
+
+        handleAttack(room, socket.id, spot);
+    });
+
+    /* ---------- ULANISH UZILGANDA ---------- */
+
+    socket.on("disconnect", () => {
+        // Navbatdan chiqarish
+        if (waitingQueue && waitingQueue.socket.id === socket.id) {
+            clearTimeout(waitingTimeout);
+            waitingQueue = null;
+        }
+
+        // Agar biror faol xonada bo'lsa — raqibiga xabar beramiz va xonani tugatamiz
+        const room = Object.values(rooms).find(r => r.players.some(p => p.socketId === socket.id));
+        if (!room) return;
+
+        const opponent = getOpponent(room, socket.id);
+
+        if (opponent && !opponent.isBot && room.phase !== "ended") {
+            io.to(opponent.socketId).emit("errorMsg", "Raqib o'yindan chiqib ketdi.");
+        }
+
+        endRoom(room.id);
+    });
 });
 
-const PORT = process.env.PORT || 10000;
-server.listen(PORT, async () => {
-  console.log(`🚀 Qalampir Game serveri ${PORT}-portda muvaffaqiyatli ishga tushdi!`);
-  
-  // Telegram Botni ishga tushirish
-  try {
-    await bot.launch();
-    console.log('🤖 Telegram Bot muvaffaqiyatli faollashtirildi!');
-  } catch (err) {
-    console.error('❌ Telegram Botni ishga tushirishda xatolik:', err.message);
-  }
+/* =========================================================
+   SERVERNI ISHGA TUSHIRISH
+========================================================= */
+
+server.listen(PORT, () => {
+    console.log(`Qalampir server ${PORT}-portda ishga tushdi`);
 });
