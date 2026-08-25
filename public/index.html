@@ -1,23 +1,4 @@
-Ha. Endi oldingi g‘oyalarimizga mos **yangi frontend** qilamiz. Men mavjud o‘yinning 6 katakli mexanikasini saqlab, ustiga:
 
-* 💰 Coin balans
-* 🔥 Win streak
-* 👥 Do‘st taklif qilish
-* 🏆 Reyting
-* 🎁 Daily bonus
-* 🎨 Skinlar uchun joy
-* 😈 Revenge
-* 📤 Natijani ulashish
-* ⚡ Random o‘yin
-* 👥 Do‘st bilan duel
-
-uchun interfeys tayyorlayman.
-
-**Hozircha bu frontendda Coin, referral va leaderboard faqat UI sifatida ishlaydi.** Keyingi bosqichda ularni Node.js + PostgreSQL backendga ulaymiz.
-
-GitHub'da `public/index.html` faylini **to‘liq o‘chirib**, quyidagi kod bilan almashtiring:
-
-```html
 <!DOCTYPE html>
 <html lang="uz">
 <head>
@@ -1622,65 +1603,4 @@ GitHub'da `public/index.html` faylini **to‘liq o‘chirib**, quyidagi kod bila
 
 </body>
 </html>
-```
 
-### Bitta joyni albatta o‘zgartiring
-
-Kod ichidan:
-
-```js
-const botUsername =
-    "YOUR_BOT_USERNAME";
-```
-
-degan joylarni toping.
-
-U yerga **bot username**ingizni yozasiz.
-
-Masalan botingiz:
-
-```text
-@QalampirGameBot
-```
-
-bo‘lsa:
-
-```js
-const botUsername =
-    "QalampirGameBot";
-```
-
-**`@` belgisini yozmaysiz.**
-
----
-
-### Hozir nima ishlaydi?
-
-Bu frontendni joylaganingizdan keyin:
-
-* 🌶️ yangi asosiy dizayn
-* 💰 Coin ko‘rsatkichi
-* 🔥 streak
-* ⚡ random game
-* 👥 private room
-* 🏆 leaderboard oynasi
-* 🎁 daily bonus
-* 🎨 skinlar oynasi
-* 🚀 referral/share tugmasi
-* ⚔️ mavjud multiplayer o‘yin
-* 🏆 win/lose
-* 📱 Telegram Mini App ko‘rinishi
-
-ishlaydi.
-
-**Lekin muhim:** Coin hozircha faqat frontenddagi vaqtinchalik qiymat. Foydalanuvchi sahifani yangilasa yana 100 bo‘ladi. Bu ataylab shunday: keyingi bosqichda Coinni **server + PostgreSQL**ga o'tkazamiz. Shunda foydalanuvchi balansini aldab o‘zgartira olmaydi.
-
-### Keyingi bosqich
-
-Frontend tayyor bo‘lgach, keyingi ishimiz:
-
-**`server.js` → Telegram user → PostgreSQL → Coin → referral**
-
-bo‘ladi.
-
-Shundan keyin loyihamiz haqiqiy **pul ishlash + viral tarqalish** tizimiga aylana boshlaydi.
