@@ -664,7 +664,7 @@
                 </div>
 
                 <div class="section-link">
-                    +500 🌶️
+                    +50 🌶️
                 </div>
 
             </div>
@@ -709,7 +709,7 @@
                 yuqoriga chiqing!
             </div>
 
-            <button class="share-btn" onclick="shareGame()">
+            <button class="share-btn" onclick="@QalampirVS_bot()">
                 🚀 DO'STIMNI TAKLIF QILISH
             </button>
 
@@ -847,28 +847,28 @@
             <div class="rank-number">🥇</div>
             <div class="rank-avatar">😎</div>
             <div class="rank-name">Ali</div>
-            <div class="rank-score">12,540 🌶️</div>
+            <div class="rank-score">12 🌶️</div>
         </div>
 
         <div class="rank-row">
             <div class="rank-number">🥈</div>
             <div class="rank-avatar">🔥</div>
             <div class="rank-name">Bekzod</div>
-            <div class="rank-score">11,920 🌶️</div>
+            <div class="rank-score">11 🌶️</div>
         </div>
 
         <div class="rank-row">
             <div class="rank-number">🥉</div>
             <div class="rank-avatar">⚡</div>
             <div class="rank-name">Sardor</div>
-            <div class="rank-score">9,870 🌶️</div>
+            <div class="rank-score">9 🌶️</div>
         </div>
 
         <div class="rank-row">
             <div class="rank-number">4</div>
             <div class="rank-avatar">👑</div>
             <div class="rank-name">Aziz</div>
-            <div class="rank-score">8,450 🌶️</div>
+            <div class="rank-score">8 🌶️</div>
         </div>
 
         <button
@@ -1081,7 +1081,7 @@
     socket.on("waitingForOpponent", () => {
 
         statusEl.innerText =
-            "⏳ Raqib kutilmoqda...\n\n6 soniyada odam topilmasa Bot ulanadi.";
+            "⏳ Raqib kutilmoqda...\n\n10 soniyada odam topilmasa Bot ulanadi.";
 
     });
 
@@ -1257,7 +1257,7 @@
 
 
             statusEl.innerText =
-                "🏆 SIZ YUTDINGIZ!\n\n+100 🌶️";
+                "🏆 SIZ YUTDINGIZ!\n\n+10 🌶️";
 
 
             if (
@@ -1337,7 +1337,7 @@
     function shareGame() {
 
         const botUsername =
-            "YOUR_BOT_USERNAME";
+            "@QalampirVS_bot";
 
 
         const referralCode =
@@ -1345,7 +1345,7 @@
 
 
         const link =
-            `https://t.me/${botUsername}?start=ref_${referralCode}`;
+            `https://t.me/${@QalampirVS_bot}?start=ref_${referralCode}`;
 
 
         const text =
@@ -1370,11 +1370,11 @@
     function shareRoom(roomCode) {
 
         const botUsername =
-            "YOUR_BOT_USERNAME";
+            "@QalampirVS_bot";
 
 
         const link =
-            `https://t.me/${botUsername}?start=room_${roomCode}`;
+            `https://t.me/${@QalampirVS_bot}?start=room_${roomCode}`;
 
 
         const text =
