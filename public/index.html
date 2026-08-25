@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="uz">
 <head>
@@ -71,8 +70,6 @@
             padding: 14px 14px 30px;
         }
 
-        /* HEADER */
-
         .topbar {
             display: flex;
             align-items: center;
@@ -122,8 +119,6 @@
             color: var(--yellow);
         }
 
-        /* HERO */
-
         .hero {
             position: relative;
             overflow: hidden;
@@ -172,8 +167,6 @@
             font-weight: 800;
         }
 
-        /* MAIN BUTTON */
-
         .main-play {
             width: 100%;
             padding: 17px;
@@ -190,8 +183,6 @@
         .main-play:active {
             transform: scale(.98);
         }
-
-        /* MENU */
 
         .menu-grid {
             display: grid;
@@ -230,8 +221,6 @@
             color: var(--muted);
             font-size: 10px;
         }
-
-        /* DAILY */
 
         .daily {
             padding: 15px;
@@ -307,8 +296,6 @@
             font-weight: 900;
         }
 
-        /* REFERRAL */
-
         .referral {
             padding: 16px;
             border-radius: 18px;
@@ -343,8 +330,6 @@
             font-size: 13px;
             font-weight: 900;
         }
-
-        /* GAME */
 
         .game-screen {
             display: none;
@@ -458,8 +443,6 @@
             font-weight: 900;
         }
 
-        /* MODAL */
-
         .modal {
             position: fixed;
             inset: 0;
@@ -513,8 +496,6 @@
             color: white;
         }
 
-        /* LEADERBOARD */
-
         .rank-row {
             display: flex;
             align-items: center;
@@ -551,8 +532,6 @@
             font-weight: 900;
         }
 
-        /* FOOTER */
-
         .footer {
             text-align: center;
             color: #515c6d;
@@ -575,8 +554,6 @@
 <body>
 
 <div class="app">
-
-    <!-- ================= HOME ================= -->
 
     <div id="homeScreen">
 
@@ -678,8 +655,6 @@
         </div>
 
 
-        <!-- DAILY -->
-
         <div class="daily">
 
             <div class="section-head">
@@ -722,8 +697,6 @@
         </div>
 
 
-        <!-- REFERRAL -->
-
         <div class="referral">
 
             <div class="referral-title">
@@ -749,8 +722,6 @@
 
     </div>
 
-
-    <!-- ================= GAME ================= -->
 
     <div id="gameScreen" class="game-screen">
 
@@ -828,8 +799,6 @@
 </div>
 
 
-<!-- ================= ROOM MODAL ================= -->
-
 <div id="roomModal" class="modal">
 
     <div class="modal-box">
@@ -865,8 +834,6 @@
 
 </div>
 
-
-<!-- ================= LEADERBOARD MODAL ================= -->
 
 <div id="leaderboardModal" class="modal">
 
@@ -918,10 +885,6 @@
 
 <script>
 
-    /* ==========================================
-       TELEGRAM
-    ========================================== */
-
     const tg = window.Telegram.WebApp;
 
     tg.ready();
@@ -929,10 +892,6 @@
 
     const socket = io();
 
-
-    /* ==========================================
-       USER
-    ========================================== */
 
     const user =
         tg.initDataUnsafe &&
@@ -948,10 +907,6 @@
         user.first_name || "O'yinchi";
 
 
-    /* ==========================================
-       STATE
-    ========================================== */
-
     let coins = 100;
     let streak = 0;
 
@@ -960,10 +915,6 @@
     let isMyTurn = false;
     let gamePhase = "WAITING";
 
-
-    /* ==========================================
-       DOM
-    ========================================== */
 
     const homeScreen =
         document.getElementById("homeScreen");
@@ -984,10 +935,6 @@
         document.querySelectorAll(".enemy-cell");
 
 
-    /* ==========================================
-       COINS
-    ========================================== */
-
     function updateCoins(amount) {
 
         coins += amount;
@@ -1002,10 +949,6 @@
     }
 
 
-    /* ==========================================
-       STREAK
-    ========================================== */
-
     function updateStreak(value) {
 
         streak = value;
@@ -1015,10 +958,6 @@
 
     }
 
-
-    /* ==========================================
-       GAME SCREEN
-    ========================================== */
 
     function openGame() {
 
@@ -1039,10 +978,6 @@
     }
 
 
-    /* ==========================================
-       RANDOM GAME
-    ========================================== */
-
     function startRandom() {
 
         openGame();
@@ -1059,10 +994,6 @@
 
     }
 
-
-    /* ==========================================
-       PRIVATE ROOM
-    ========================================== */
 
     function openRoomModal() {
 
@@ -1135,10 +1066,6 @@
     }
 
 
-    /* ==========================================
-       SOCKET EVENTS
-    ========================================== */
-
     socket.on("roomCreated", (data) => {
 
         currentRoom = data.roomId;
@@ -1179,10 +1106,6 @@
 
     });
 
-
-    /* ==========================================
-       PLACE PEPPER
-    ========================================== */
 
     function selectMySpot(index) {
 
@@ -1243,10 +1166,6 @@
 
     }
 
-
-    /* ==========================================
-       BATTLE
-    ========================================== */
 
     socket.on("battleStart", (data) => {
 
@@ -1321,10 +1240,6 @@
     });
 
 
-    /* ==========================================
-       GAME OVER
-    ========================================== */
-
     socket.on("gameOver", (data) => {
 
         gamePhase = "END";
@@ -1398,10 +1313,6 @@
     });
 
 
-    /* ==========================================
-       RESULT
-    ========================================== */
-
     function showResultActions() {
 
         const again =
@@ -1422,10 +1333,6 @@
 
     }
 
-
-    /* ==========================================
-       REFERRAL SHARE
-    ========================================== */
 
     function shareGame() {
 
@@ -1460,10 +1367,6 @@
     }
 
 
-    /* ==========================================
-       SHARE ROOM
-    ========================================== */
-
     function shareRoom(roomCode) {
 
         const botUsername =
@@ -1496,10 +1399,6 @@
 
     }
 
-
-    /* ==========================================
-       DAILY BONUS
-    ========================================== */
 
     function dailyBonus() {
 
@@ -1543,10 +1442,6 @@
     }
 
 
-    /* ==========================================
-       LEADERBOARD
-    ========================================== */
-
     function showLeaderboard() {
 
         document
@@ -1565,10 +1460,6 @@
     }
 
 
-    /* ==========================================
-       SKINS
-    ========================================== */
-
     function showSkins() {
 
         tg.showAlert(
@@ -1580,10 +1471,6 @@
 
     }
 
-
-    /* ==========================================
-       TELEGRAM MAIN BUTTON
-    ========================================== */
 
     try {
 
@@ -1603,4 +1490,3 @@
 
 </body>
 </html>
-
