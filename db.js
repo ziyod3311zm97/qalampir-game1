@@ -1,98 +1,244 @@
-require('dotenv').config();
-const { Pool } = require('pg');
-
-const connectionString = process.env.DATABASE_URL;
-
-if (!connectionString) {
-  console.error("❌ XATOLIK: DATABASE_URL topilmadi!");
-}
+const { Pool } = require("pg");
 
 const pool = new Pool({
-  connectionString: connectionString
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
-const initDB = async () => {
+pool.on("error", (err) => {
+  console.error("PostgreSQL pool error:", err);
+});
+
+async function query(text, params = []) {
+  const result = await pool.query(text, params);
+  return result;
+}
+
+async function initDatabase() {
+  await query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id BIGSERIAL PRIMARY KEY,
+      telegram_id BIGINT UNIQUE NOT NULL,
+      username TEXT,
+      first_name TEXT,
+      coins BIGINT NOT NULL DEFAULT 100,
+      wins INTEGER NOT NULL DEFAULT 0,
+      losses INTEGER NOT NULL DEFAULT 0,
+      streak INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS transactions (
+      id BIGSERIAL PRIMARY KEY,
+      telegram_id BIGINT NOT NULL,
+      amount BIGINT NOT NULL,
+      type TEXT NOT NULL,
+      description TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  await query(`
+    CREATE INDEX IF NOT EXISTS idx_transactions_telegram_id
+    ON transactions(telegram_id);
+  `);
+
+  console.log("PostgreSQL database tayyor.");
+}
+
+async function getUser(telegramId) {
+  const result = await query(
+    `SELECT * FROM users WHERE telegram_id = $1`,
+    [telegramId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function createUser({
+  telegramId,
+  username = null,
+  firstName = null
+}) {
+  const result = await query(
+    `
+    INSERT INTO users (
+      telegram_id,
+      username,
+      first_name
+    )
+    VALUES ($1, $2, $3)
+    ON CONFLICT (telegram_id)
+    DO UPDATE SET
+      username = EXCLUDED.username,
+      first_name = EXCLUDED.first_name,
+      updated_at = NOW()
+    RETURNING *
+    `,
+    [telegramId, username, firstName]
+  );
+
+  return result.rows[0];
+}
+
+async function getOrCreateUser(userData) {
+  const existing = await getUser(userData.telegramId);
+
+  if (existing) {
+    return existing;
+  }
+
+  return createUser(userData);
+}
+
+async function updateBalance(telegramId, amount, type, description = null) {
+  const client = await pool.connect();
+
   try {
-    const client = await pool.connect();
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        telegram_id BIGINT PRIMARY KEY,
-        username VARCHAR(255),
-        first_name VARCHAR(255),
-        balance INT DEFAULT 1000,
-        energy INT DEFAULT 5,
-        last_energy_update BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()),
-        wins INT DEFAULT 0,
-        losses INT DEFAULT 0,
-        streak INT DEFAULT 0,
-        referred_by BIGINT,
-        created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW())
-      );
+    await client.query("BEGIN");
 
-      CREATE TABLE IF NOT EXISTS transactions (
-        id SERIAL PRIMARY KEY,
-        telegram_id BIGINT,
-        amount INT,
-        type VARCHAR(50),
-        description TEXT,
-        created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW())
-      );
-    `);
-    console.log('✅ PostgreSQL bazasi tayyor va jadvallar yaratildi');
+    const userResult = await client.query(
+      `
+      UPDATE users
+      SET
+        coins = coins + $1,
+        updated_at = NOW()
+      WHERE telegram_id = $2
+      RETURNING *
+      `,
+      [amount, telegramId]
+    );
+
+    if (userResult.rows.length === 0) {
+      throw new Error("User topilmadi");
+    }
+
+    await client.query(
+      `
+      INSERT INTO transactions (
+        telegram_id,
+        amount,
+        type,
+        description
+      )
+      VALUES ($1, $2, $3, $4)
+      `,
+      [telegramId, amount, type, description]
+    );
+
+    await client.query("COMMIT");
+
+    return userResult.rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
     client.release();
-  } catch (err) {
-    console.error('❌ Baza ulanishida xatolik:', err.message);
   }
-};
+}
 
-initDB();
+async function updateGameStats(
+  telegramId,
+  won,
+  reward = 0
+) {
+  const client = await pool.connect();
 
-const dbQuery = {
-  getUser: async (id) => {
-    try {
-      const res = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [id]);
-      return res.rows[0];
-    } catch (err) {
-      console.error('getUser xatosi:', err.message);
-      return null;
+  try {
+    await client.query("BEGIN");
+
+    const result = await client.query(
+      `
+      UPDATE users
+      SET
+        coins = coins + $1,
+        wins = wins + $2,
+        losses = losses + $3,
+        streak = CASE
+          WHEN $2 = 1 THEN streak + 1
+          ELSE 0
+        END,
+        updated_at = NOW()
+      WHERE telegram_id = $4
+      RETURNING *
+      `,
+      [
+        reward,
+        won ? 1 : 0,
+        won ? 0 : 1,
+        telegramId
+      ]
+    );
+
+    if (result.rows.length === 0) {
+      throw new Error("User topilmadi");
     }
-  },
-  createUser: async (user, referredBy = null) => {
-    try {
-      const res = await pool.query(
-        'INSERT INTO users (telegram_id, username, first_name, referred_by) VALUES ($1, $2, $3, $4) RETURNING *',
-        [user.id, user.username || '', user.first_name || '', referredBy]
+
+    if (reward !== 0) {
+      await client.query(
+        `
+        INSERT INTO transactions (
+          telegram_id,
+          amount,
+          type,
+          description
+        )
+        VALUES ($1, $2, $3, $4)
+        `,
+        [
+          telegramId,
+          reward,
+          won ? "game_win" : "game_loss",
+          won ? "O'yinda g'alaba" : "O'yinda mag'lubiyat"
+        ]
       );
-      return res.rows[0];
-    } catch (err) {
-      console.error('createUser xatosi:', err.message);
-      return null;
     }
-  },
-  updateBalance: async (id, amount, type, desc) => {
-    try {
-      await pool.query('UPDATE users SET balance = balance + $1 WHERE telegram_id = $2', [amount, id]);
-      await pool.query(
-        'INSERT INTO transactions (telegram_id, amount, type, description) VALUES ($1, $2, $3, $4)',
-        [id, amount, type, desc]
-      );
-      return true;
-    } catch (err) {
-      console.error('updateBalance xatosi:', err.message);
-      return false;
-    }
-  },
-  updateStats: async (id, isWin) => {
-    try {
-      if (isWin) {
-        await pool.query('UPDATE users SET wins = wins + 1, streak = streak + 1 WHERE telegram_id = $1', [id]);
-      } else {
-        await pool.query('UPDATE users SET losses = losses + 1, streak = 0 WHERE telegram_id = $1', [id]);
-      }
-    } catch (err) {
-      console.error('updateStats xatosi:', err.message);
-    }
+
+    await client.query("COMMIT");
+
+    return result.rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
   }
-};
+}
 
-module.exports = { pool, dbQuery };
+async function getLeaderboard(limit = 10) {
+  const result = await query(
+    `
+    SELECT
+      telegram_id,
+      username,
+      first_name,
+      coins,
+      wins,
+      losses,
+      streak
+    FROM users
+    ORDER BY coins DESC
+    LIMIT $1
+    `,
+    [limit]
+  );
+
+  return result.rows;
+}
+
+module.exports = {
+  pool,
+  query,
+  initDatabase,
+  getUser,
+  createUser,
+  getOrCreateUser,
+  updateBalance,
+  updateGameStats,
+  getLeaderboard
+};
