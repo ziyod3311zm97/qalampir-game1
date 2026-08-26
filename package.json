@@ -1,16 +1,20 @@
 {
-  "name": "qalampir-backend",
+  "name": "qalampir-game",
   "version": "1.0.0",
-  "description": "Qalampir Telegram Mini App uchun backend (Express + Socket.io)",
+  "description": "Qalampir Game Telegram Mini App",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "socket.io": "^4.7.5"
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "pg": "^8.13.1",
+    "socket.io": "^4.8.1",
+    "telegraf": "^4.16.3"
   }
 }
